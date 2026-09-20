@@ -1,0 +1,6 @@
+// Sections (header/hero/carousel/leaderboard/dev-cta/footer) are mounted
+// here incrementally as each one is built in later stages.
+.home-page {
+  display: flex;
+  flex-direction: column;
+}
