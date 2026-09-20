@@ -1,0 +1,171 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.header {
+  position: relative;
+  background-color: var(--color-bg);
+
+  // Solid separator confirmed by sampling the Figma export
+  // (design-refs/home-desktop-1920.png, y≈83-84) — no border-width token exists.
+  border-bottom: 2px solid var(--color-on-primary);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: bp.$container-max;
+  height: var(--size-8);
+  margin-inline: auto;
+  padding-inline: var(--size-2);
+
+  @media (min-width: 481px) {
+    height: var(--size-9);
+    padding-inline: var(--size-5);
+  }
+
+  @include bp.desktop-up {
+    // 85px desktop header height sits between size-10 (80px) and size-11 (88px)
+    // on the token scale; confirmed via Figma metadata (node 1:14, height 85).
+    height: calc(var(--size-10) + 5px);
+    padding-inline: var(--size-10);
+  }
+}
+
+.header__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  color: var(--color-on-primary);
+
+  @include bp.hover {
+    opacity: 0.85;
+  }
+}
+
+.header__logo-badge {
+  // The SVG asset already draws its own border, fill and rounded corners.
+  display: block;
+  width: var(--size-4);
+  height: var(--size-4);
+}
+
+.header__logo-text {
+  @include type.display-small;
+
+  color: var(--color-on-primary);
+}
+
+.header__nav {
+  display: none;
+
+  @include bp.desktop-up {
+    display: block;
+  }
+}
+
+.header__nav-list {
+  display: flex;
+  align-items: center;
+  gap: var(--size-5);
+}
+
+.header__nav-link {
+  @include type.label-large;
+  @include mix.focus-ring;
+
+  color: var(--color-on-bg);
+
+  @include bp.hover {
+    color: var(--color-on-primary);
+  }
+}
+
+.header__nav-link--active {
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+.header__button {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--btn-medium-y) var(--btn-medium-x);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-extra-small);
+  font-weight: var(--weight-bold);
+
+  &:active {
+    filter: brightness(0.94);
+  }
+}
+
+.header__button--outline {
+  background-color: var(--color-white);
+  color: var(--color-on-primary);
+
+  @include bp.hover {
+    background-color: var(--color-surface-low);
+  }
+
+  @include bp.desktop-up {
+    display: inline-flex;
+  }
+}
+
+.header__button--primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+
+  @include bp.hover {
+    background-color: var(--color-primary-low);
+  }
+
+  @media (min-width: 481px) {
+    display: inline-flex;
+  }
+}
+
+.header__burger {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-05);
+  width: var(--size-4);
+  height: var(--size-4);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-extra-small);
+  background-color: var(--color-white);
+
+  &:active {
+    filter: brightness(0.94);
+  }
+
+  @include bp.desktop-up {
+    display: none;
+  }
+}
+
+.header__burger-line {
+  display: block;
+  width: var(--size-2);
+  // No 2px token on the size scale; matches the header's hairline border weight.
+  height: 2px;
+  background-color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+}
