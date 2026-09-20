@@ -1,6 +1,7 @@
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
 import { createElement } from '@/shared/lib/dom';
-import { dispatchAuthDialogOpen, dispatchBurgerMenuToggle } from '@/shared/lib/app-events';
+import { dispatchAuthDialogOpen } from '@/shared/lib/app-events';
+import { onBurgerMenuChange, toggleBurgerMenu } from '@/shared/lib/burger-menu-state';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
 import './header.scss';
@@ -76,10 +77,13 @@ function createAuthButton(
   });
 }
 
-function createBurgerButton(): HTMLButtonElement {
-  const lines = [0, 1, 2].map(() => createElement('span', { className: 'header__burger-line' }));
+interface BurgerButton {
+  readonly element: HTMLButtonElement;
+  readonly unsubscribe: () => void;
+}
 
-  let isMenuOpen = false;
+function createBurgerButton(): BurgerButton {
+  const lines = [0, 1, 2].map(() => createElement('span', { className: 'header__burger-line' }));
 
   const button = createElement('button', {
     className: 'header__burger',
@@ -90,22 +94,26 @@ function createBurgerButton(): HTMLButtonElement {
     },
     children: lines,
     onClick: () => {
-      isMenuOpen = !isMenuOpen;
-      button.setAttribute('aria-expanded', String(isMenuOpen));
-      dispatchBurgerMenuToggle(isMenuOpen);
+      toggleBurgerMenu();
     },
   });
 
-  return button;
+  const unsubscribe = onBurgerMenuChange((isOpen) => {
+    button.setAttribute('aria-expanded', String(isOpen));
+    button.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  });
+
+  return { element: button, unsubscribe };
 }
 
 export function createHeader(): Component {
+  const burgerButton = createBurgerButton();
   const actions = createElement('div', {
     className: 'header__actions',
     children: [
       createAuthButton('Log In', DialogMode.Login, 'outline'),
       createAuthButton('Sign Up', DialogMode.Register, 'primary'),
-      createBurgerButton(),
+      burgerButton.element,
     ],
   });
 
@@ -116,5 +124,5 @@ export function createHeader(): Component {
 
   const element = createElement('header', { className: 'header', children: [inner] });
 
-  return { element };
+  return { element, destroy: burgerButton.unsubscribe };
 }
