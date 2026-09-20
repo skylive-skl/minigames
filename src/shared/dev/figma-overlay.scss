@@ -1,0 +1,21 @@
+.figma-overlay-image {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 2147483647;
+  pointer-events: none;
+  display: none;
+}
+
+.figma-overlay-panel {
+  position: fixed;
+  bottom: var(--size-2);
+  left: var(--size-2);
+  z-index: 2147483647;
+  display: none;
+  gap: var(--size-1);
+  align-items: center;
+  padding: var(--size-1);
+  background: rgb(0 0 0 / 70%);
+  border-radius: var(--corner-small);
+}
