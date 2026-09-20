@@ -1,0 +1,145 @@
+// Line-heights are approximate ratios (no line-height tokens exist in the
+// design system) and get verified against Figma per section during layout stages.
+
+@mixin display-large {
+  font-family: var(--font-main);
+  font-size: var(--display-large);
+  font-weight: var(--weight-extra-bold);
+  line-height: 1.15;
+}
+
+@mixin display-medium {
+  font-family: var(--font-main);
+  font-size: var(--display-medium);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+
+@mixin display-small {
+  font-family: var(--font-main);
+  font-size: var(--display-small);
+  font-weight: var(--weight-bold);
+  line-height: 1.25;
+}
+
+@mixin headline-large {
+  font-family: var(--font-main);
+  font-size: var(--headline-large);
+  font-weight: var(--weight-bold);
+  line-height: 1.3;
+}
+
+@mixin headline-medium {
+  font-family: var(--font-main);
+  font-size: var(--headline-medium);
+  font-weight: var(--weight-bold);
+  line-height: 1.3;
+}
+
+@mixin headline-small {
+  font-family: var(--font-main);
+  font-size: var(--headline-small);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+}
+
+@mixin body-large {
+  font-family: var(--font-main);
+  font-size: var(--body-large);
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
+}
+
+@mixin body-medium {
+  font-family: var(--font-main);
+  font-size: var(--body-medium);
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
+}
+
+@mixin body-small {
+  font-family: var(--font-main);
+  font-size: var(--body-small);
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
+}
+
+@mixin label-extra-large {
+  font-family: var(--font-alt);
+  font-size: var(--label-extra-large);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+}
+
+@mixin label-large {
+  font-family: var(--font-alt);
+  font-size: var(--label-large);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+}
+
+@mixin label-medium {
+  font-family: var(--font-alt);
+  font-size: var(--label-medium);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+}
+
+@mixin label-small {
+  font-family: var(--font-alt);
+  font-size: var(--label-small);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+}
+
+.text-display-large {
+  @include display-large;
+}
+
+.text-display-medium {
+  @include display-medium;
+}
+
+.text-display-small {
+  @include display-small;
+}
+
+.text-headline-large {
+  @include headline-large;
+}
+
+.text-headline-medium {
+  @include headline-medium;
+}
+
+.text-headline-small {
+  @include headline-small;
+}
+
+.text-body-large {
+  @include body-large;
+}
+
+.text-body-medium {
+  @include body-medium;
+}
+
+.text-body-small {
+  @include body-small;
+}
+
+.text-label-extra-large {
+  @include label-extra-large;
+}
+
+.text-label-large {
+  @include label-large;
+}
+
+.text-label-medium {
+  @include label-medium;
+}
+
+.text-label-small {
+  @include label-small;
+}
