@@ -1,0 +1,69 @@
+@use 'breakpoints' as bp;
+
+// Container padding follows the spacing scale exactly: 16px (size-2) mobile,
+// 40px (size-5) tablet, 120px (size-15) desktop. Content caps at $content-max.
+@mixin container {
+  width: 100%;
+  max-width: bp.$container-max;
+  margin-inline: auto;
+  padding-inline: var(--size-2);
+
+  @media (min-width: 481px) {
+    padding-inline: var(--size-5);
+  }
+
+  @include bp.desktop-up {
+    padding-inline: var(--size-15);
+  }
+}
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin hard-shadow($size: sm) {
+  @if $size == sm {
+    box-shadow: var(--shadow-hard-sm);
+  } @else if $size == md {
+    box-shadow: var(--shadow-hard-md);
+  } @else if $size == lg {
+    box-shadow: var(--shadow-hard-lg);
+  } @else if $size == black {
+    box-shadow: var(--shadow-hard-black);
+  } @else {
+    @error "Unknown hard-shadow size: #{$size}";
+  }
+}
+
+@mixin button-reset {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+@mixin focus-ring {
+  // no dedicated outline-width token in the design system;
+  // 2px matches the interactive-states guidebook (node 2:1650)
+  &:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: 2px;
+  }
+}
