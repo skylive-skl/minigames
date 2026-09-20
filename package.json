@@ -1,0 +1,17 @@
+{
+  "name": "minigames",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "sass": "^1.104.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0"
+  }
+}
