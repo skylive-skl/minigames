@@ -28,7 +28,7 @@ export function createGameCard(game: Game, position: CardPosition): HTMLElement 
     },
   });
 
-  const title = createElement('p', { className: 'game-card__title', text: game.name });
+  const title = createElement('h3', { className: 'game-card__title', text: game.name });
 
   const rating = createElement('span', {
     className: 'game-card__rating',
