@@ -30,13 +30,18 @@ function getTrackGames(): Game[] {
 }
 
 function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
+  const attributes: Record<string, string> = {
+    type: 'button',
+    'aria-label': direction === 'left' ? 'Previous slide' : 'Next slide',
+  };
+
+  if (direction === 'left') {
+    attributes.disabled = '';
+  }
+
   return createElement('button', {
     className: `carousel__arrow carousel__arrow--${direction}`,
-    attributes: {
-      type: 'button',
-      'aria-label': direction === 'left' ? 'Previous slide' : 'Next slide',
-      disabled: 'true',
-    },
+    attributes,
     children: [createArrowIcon(direction)],
   });
 }

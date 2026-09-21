@@ -366,7 +366,7 @@ export function createAuthDialog(): Component {
     button: createElement('button', {
       className: 'auth-dialog__tab',
       text: TAB_LABELS[mode],
-      attributes: { type: 'button', role: 'tab' },
+      attributes: { type: 'button', role: 'tab', 'aria-controls': 'auth-dialog-panel' },
       onClick: () => {
         setMode(mode);
       },
@@ -386,7 +386,10 @@ export function createAuthDialog(): Component {
     setMode(DialogMode.Login);
   });
 
-  const body = createElement('div', { className: 'auth-dialog__body' });
+  const body = createElement('div', {
+    className: 'auth-dialog__body',
+    attributes: { id: 'auth-dialog-panel', role: 'tabpanel' },
+  });
 
   const panel = createElement('div', {
     className: 'auth-dialog__panel',
@@ -395,7 +398,7 @@ export function createAuthDialog(): Component {
 
   const dialog = createElement('dialog', {
     className: 'auth-dialog',
-    attributes: { role: 'dialog', 'aria-modal': 'true' },
+    attributes: { 'aria-modal': 'true' },
     children: [panel],
   });
 

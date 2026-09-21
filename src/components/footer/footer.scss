@@ -18,9 +18,17 @@
 
 .footer__top {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  // Tablet keeps Explore/Company/Community as one 3-column row below the
+  // brand block; only mobile reflows them into a 2x2 grid (confirmed via
+  // design-refs pixel sampling — the plan's "tablet stacked" note refers to
+  // brand-above-nav, not the nav columns themselves splitting further).
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--size-4);
   margin-bottom: var(--size-4);
+
+  @include bp.mobile-down {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @include bp.desktop-up {
     display: flex;
