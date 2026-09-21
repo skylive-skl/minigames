@@ -27,6 +27,67 @@ function isDialogMode(value: unknown): value is DialogMode {
   return value === DialogMode.Login || value === DialogMode.Register;
 }
 
+const TRANSITION_MS = 250;
+const pendingCleanups = new WeakMap<HTMLElement, () => void>();
+
+function isReducedMotionPreferred(): boolean {
+  return globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// Crossfades tab content and animates the container's height from the old
+// panel's height to the new one's, measuring the incoming panel as an
+// absolutely-positioned overlay so it never affects layout while both
+// panels are briefly present together.
+function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void {
+  pendingCleanups.get(container)?.();
+  pendingCleanups.delete(container);
+
+  const candidate = container.firstElementChild;
+
+  if (candidate === nextPanel || !(candidate instanceof HTMLElement)) {
+    container.replaceChildren(nextPanel);
+    return;
+  }
+
+  if (isReducedMotionPreferred()) {
+    container.replaceChildren(nextPanel);
+    return;
+  }
+
+  const previousPanel = candidate;
+
+  const startHeight = container.offsetHeight;
+
+  nextPanel.classList.add(
+    'auth-dialog__panel-content--overlay',
+    'auth-dialog__panel-content--hidden',
+  );
+  container.append(nextPanel);
+  const endHeight = nextPanel.offsetHeight;
+
+  container.style.height = `${String(startHeight)}px`;
+
+  requestAnimationFrame(() => {
+    previousPanel.classList.add('auth-dialog__panel-content--hidden');
+    nextPanel.classList.remove('auth-dialog__panel-content--hidden');
+    container.style.height = `${String(endHeight)}px`;
+  });
+
+  function finalize(): void {
+    previousPanel.remove();
+    nextPanel.classList.remove('auth-dialog__panel-content--overlay');
+    container.style.height = '';
+    pendingCleanups.delete(container);
+  }
+
+  const timeoutId = globalThis.setTimeout(finalize, TRANSITION_MS);
+
+  pendingCleanups.set(container, () => {
+    globalThis.clearTimeout(timeoutId);
+    finalize();
+  });
+}
+
 function createDivider(): HTMLElement {
   return createElement('div', {
     className: 'auth-dialog__divider',
@@ -282,7 +343,7 @@ export function createAuthDialog(): Component {
     }
 
     const content = mode === DialogMode.Login ? loginPanel : registerPanel;
-    body.replaceChildren(content);
+    crossfadeContent(body, content);
   }
 
   const tabs: readonly TabButton[] = [DialogMode.Login, DialogMode.Register].map((mode) => ({

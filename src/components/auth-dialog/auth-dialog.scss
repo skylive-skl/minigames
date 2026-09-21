@@ -126,13 +126,37 @@
 }
 
 .auth-dialog__body {
+  position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  transition: height 0.25s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .auth-dialog__panel-content {
   display: flex;
   flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.auth-dialog__panel-content--overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.auth-dialog__panel-content--hidden {
+  opacity: 0;
 }
 
 .auth-dialog__heading {
