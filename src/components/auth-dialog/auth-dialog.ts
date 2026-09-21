@@ -7,6 +7,7 @@ import {
   createEyeOffIcon,
   createGoogleIcon,
   createLockIcon,
+  createPersonIcon,
 } from '@/shared/ui/icon/icon';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
@@ -174,6 +175,93 @@ function createLoginForm(onSwitchToRegister: () => void): HTMLElement {
   });
 }
 
+function createRegisterForm(onSwitchToLogin: () => void): HTMLElement {
+  const heading = createElement('h2', {
+    className: 'auth-dialog__heading',
+    text: 'Create Account',
+  });
+  const subtext = createElement('p', {
+    className: 'auth-dialog__subtext',
+    text: 'Join MiniGames to track your score & streak.',
+  });
+
+  const usernameField = createField({
+    id: 'register-username',
+    label: 'Username',
+    type: 'text',
+    autocomplete: 'username',
+    placeholder: 'e.g. CozyGamer_99',
+    icon: createPersonIcon(),
+  });
+
+  const emailField = createField({
+    id: 'register-email',
+    label: 'Email Address',
+    type: 'email',
+    autocomplete: 'email',
+    placeholder: 'your.email@domain.com',
+    icon: createEmailIcon(),
+  });
+
+  const passwordField = createField({
+    id: 'register-password',
+    label: 'Password',
+    type: 'password',
+    autocomplete: 'new-password',
+    placeholder: 'Min. 8 characters',
+    icon: createLockIcon(),
+  });
+
+  const confirmPasswordField = createField({
+    id: 'register-confirm-password',
+    label: 'Confirm Password',
+    type: 'password',
+    autocomplete: 'new-password',
+    placeholder: 'Repeat your password',
+    icon: createLockIcon(),
+  });
+
+  const submitButton = createElement('button', {
+    className: 'auth-dialog__submit',
+    text: 'Create Account',
+    attributes: { type: 'submit' },
+  });
+
+  const switchLink = createElement('button', {
+    className: 'auth-dialog__switch-link',
+    text: 'Login',
+    attributes: { type: 'button' },
+    onClick: onSwitchToLogin,
+  });
+  const switchText = createElement('p', {
+    className: 'auth-dialog__switch-text',
+    children: [document.createTextNode('Already have an account? '), switchLink],
+  });
+
+  const form = createElement('form', {
+    className: 'auth-dialog__form',
+    attributes: { novalidate: '' },
+    children: [
+      usernameField,
+      emailField,
+      passwordField,
+      confirmPasswordField,
+      submitButton,
+      createDivider(),
+      createGoogleButton('Sign up with Google'),
+    ],
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+  });
+
+  return createElement('div', {
+    className: 'auth-dialog__panel-content',
+    children: [heading, subtext, form, switchText],
+  });
+}
+
 export function createAuthDialog(): Component {
   let lastFocusedElement: HTMLElement | undefined;
 
@@ -193,8 +281,8 @@ export function createAuthDialog(): Component {
       tab.button.setAttribute('aria-selected', String(isActive));
     }
 
-    const content = mode === DialogMode.Login ? loginPanel : undefined;
-    body.replaceChildren(...(content === undefined ? [] : [content]));
+    const content = mode === DialogMode.Login ? loginPanel : registerPanel;
+    body.replaceChildren(content);
   }
 
   const tabs: readonly TabButton[] = [DialogMode.Login, DialogMode.Register].map((mode) => ({
@@ -217,6 +305,9 @@ export function createAuthDialog(): Component {
 
   const loginPanel = createLoginForm(() => {
     setMode(DialogMode.Register);
+  });
+  const registerPanel = createRegisterForm(() => {
+    setMode(DialogMode.Login);
   });
 
   const body = createElement('div', { className: 'auth-dialog__body' });
