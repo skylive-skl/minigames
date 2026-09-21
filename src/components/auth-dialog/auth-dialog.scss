@@ -118,6 +118,12 @@
   color: var(--color-on-primary);
   font-weight: var(--weight-bold);
   text-align: center;
+
+  &:not(.auth-dialog__tab--active) {
+    @include bp.hover {
+      background-color: var(--color-surface);
+    }
+  }
 }
 
 .auth-dialog__tab--active {
@@ -207,7 +213,6 @@
 
 .auth-dialog__input {
   @include type.body-medium;
-  @include mix.focus-ring;
 
   width: 100%;
   padding: var(--size-2) var(--size-2) var(--size-2) var(--size-7);
@@ -215,9 +220,19 @@
   border: 2px solid var(--color-on-primary);
   border-radius: var(--corner-medium);
   color: var(--color-on-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
 
   &::placeholder {
     color: var(--color-text-placeholder);
+  }
+
+  @include bp.hover {
+    border-color: var(--color-tertiary);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-tertiary);
   }
 }
 
@@ -244,6 +259,10 @@
   color: var(--color-on-primary);
   font-weight: var(--weight-medium);
   text-decoration: underline;
+
+  @include bp.hover {
+    color: var(--color-tertiary);
+  }
 }
 
 .auth-dialog__submit {
@@ -328,4 +347,8 @@
   color: var(--color-on-primary);
   font-weight: var(--weight-bold);
   text-decoration: underline;
+
+  @include bp.hover {
+    color: var(--color-tertiary);
+  }
 }

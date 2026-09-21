@@ -23,6 +23,14 @@ const TAB_LABELS: Readonly<Record<DialogMode, string>> = {
   [DialogMode.Register]: 'Register',
 };
 
+const HEADING_IDS: Readonly<Record<DialogMode, string>> = {
+  [DialogMode.Login]: 'auth-dialog-login-heading',
+  [DialogMode.Register]: 'auth-dialog-register-heading',
+};
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function isDialogMode(value: unknown): value is DialogMode {
   return value === DialogMode.Login || value === DialogMode.Register;
 }
@@ -165,7 +173,11 @@ function createField(options: FieldOptions): HTMLElement {
 }
 
 function createLoginForm(onSwitchToRegister: () => void): HTMLElement {
-  const heading = createElement('h2', { className: 'auth-dialog__heading', text: 'Welcome Back!' });
+  const heading = createElement('h2', {
+    className: 'auth-dialog__heading',
+    text: 'Welcome Back!',
+    attributes: { id: HEADING_IDS[DialogMode.Login] },
+  });
   const subtext = createElement('p', {
     className: 'auth-dialog__subtext',
     text: 'Sign in to resume your games and progress.',
@@ -240,6 +252,7 @@ function createRegisterForm(onSwitchToLogin: () => void): HTMLElement {
   const heading = createElement('h2', {
     className: 'auth-dialog__heading',
     text: 'Create Account',
+    attributes: { id: HEADING_IDS[DialogMode.Register] },
   });
   const subtext = createElement('p', {
     className: 'auth-dialog__subtext',
@@ -342,6 +355,8 @@ export function createAuthDialog(): Component {
       tab.button.setAttribute('aria-selected', String(isActive));
     }
 
+    dialog.setAttribute('aria-labelledby', HEADING_IDS[mode]);
+
     const content = mode === DialogMode.Login ? loginPanel : registerPanel;
     crossfadeContent(body, content);
   }
@@ -378,7 +393,11 @@ export function createAuthDialog(): Component {
     children: [closeButton, tabList, body],
   });
 
-  const dialog = createElement('dialog', { className: 'auth-dialog', children: [panel] });
+  const dialog = createElement('dialog', {
+    className: 'auth-dialog',
+    attributes: { role: 'dialog', 'aria-modal': 'true' },
+    children: [panel],
+  });
 
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
@@ -387,8 +406,40 @@ export function createAuthDialog(): Component {
   });
 
   dialog.addEventListener('close', () => {
+    document.removeEventListener('keydown', handleKeydown);
     lastFocusedElement?.focus();
   });
+
+  function getFocusableElements(): HTMLElement[] {
+    return [...panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)];
+  }
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const focusable = getFocusableElements();
+
+    if (focusable.length === 0) {
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable.at(-1);
+
+    if (last === undefined) {
+      return;
+    }
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   function handleOpenRequest(event: Event): void {
     const { detail } = event as CustomEvent<unknown>;
@@ -401,6 +452,7 @@ export function createAuthDialog(): Component {
       document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
     setMode(detail);
     dialog.showModal();
+    document.addEventListener('keydown', handleKeydown);
   }
 
   document.addEventListener(AUTH_DIALOG_OPEN_EVENT, handleOpenRequest);
@@ -410,6 +462,7 @@ export function createAuthDialog(): Component {
     element: dialog,
     destroy: (): void => {
       document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, handleOpenRequest);
+      document.removeEventListener('keydown', handleKeydown);
     },
   };
 }
