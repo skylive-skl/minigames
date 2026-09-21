@@ -32,6 +32,10 @@ MiniGames is a single-page application showcasing a catalog of browser mini-game
 | `npm run type-check` | Run the TypeScript compiler in no-emit mode |
 | `npm run visual-diff` | Compare the built pages against Figma reference screenshots |
 
+## Known deviations from the Figma mockup
+
+- **Carousel card info overlay (mobile):** the task spec ([RSS-QS-1-4-4](https://github.com/rolling-scopes-school/qualifying-stage/blob/main/tasks/minigames/tasks/story-1/RSS-QS-1-4-4-carousel-slider.md)) requires the title/rating/likes overlay only on cards ≥288px wide. On the mobile mockup the center card is 218px wide but still shows the overlay, which contradicts the written rule. This implementation follows the written spec (no overlay below 288px) since that's what the automated/cross-check review scores against.
+
 ## Deployment
 
 _Link will be added after deployment._

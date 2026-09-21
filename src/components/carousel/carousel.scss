@@ -87,24 +87,58 @@
   flex-shrink: 0;
 }
 
+// Widths/height follow the card-size table (section 5 of the layout plan),
+// sampled per breakpoint from the Figma mockup.
 .game-card {
+  container-type: inline-size;
   position: relative;
   display: block;
   overflow: hidden;
-  height: 384px;
+  height: 200px;
   border-radius: var(--corner-medium);
+
+  @media (min-width: 481px) {
+    height: 280px;
+  }
+
+  @include bp.desktop-up {
+    height: 384px;
+  }
 }
 
 .game-card--edge {
-  width: 120px;
+  width: 56px;
+
+  @media (min-width: 481px) {
+    width: 105px;
+  }
+
+  @include bp.desktop-up {
+    width: 120px;
+  }
 }
 
 .game-card--center {
-  width: 816px;
+  width: 218px;
+
+  @media (min-width: 481px) {
+    width: 448px;
+  }
+
+  @include bp.desktop-up {
+    width: 816px;
+  }
 }
 
+// Side cards only appear in the 5-card desktop layout; tablet/mobile show
+// just edge + center + edge (see card-size table, section 5 of the plan).
 .game-card--side {
-  width: 288px;
+  display: none;
+
+  @include bp.desktop-up {
+    display: block;
+    width: 288px;
+  }
 }
 
 .game-card__image {
@@ -119,11 +153,18 @@
   right: 0;
   bottom: 0;
   left: 0;
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: var(--size-05);
   padding: var(--size-2);
   background: linear-gradient(0deg, rgb(0 0 0 / 65%) 0%, rgb(0 0 0 / 0%) 100%);
+
+  // The 288px rule (RSS-QS-1-4-4): overlay only appears once the card itself
+  // is at least 288px wide, regardless of viewport — hence a container query
+  // instead of a viewport media query.
+  @container (min-width: 288px) {
+    display: flex;
+  }
 }
 
 .game-card__title {
