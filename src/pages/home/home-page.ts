@@ -1,5 +1,6 @@
 import { createCarousel } from '@/components/carousel/carousel';
 import { createHero } from '@/components/hero/hero';
+import { createLeaderboard } from '@/components/leaderboard/leaderboard';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import './home-page.scss';
@@ -7,9 +8,10 @@ import './home-page.scss';
 export function createHomePage(): Component {
   const hero = createHero();
   const carousel = createCarousel();
+  const leaderboard = createLeaderboard();
   const element = createElement('div', {
     className: 'home-page',
-    children: [hero.element, carousel.element],
+    children: [hero.element, carousel.element, leaderboard.element],
   });
 
   return { element };
