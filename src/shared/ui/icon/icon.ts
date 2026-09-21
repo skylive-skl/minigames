@@ -48,7 +48,7 @@ export function createUploadIcon(): SVGElement {
 export type ArrowDirection = 'left' | 'right';
 
 export function createArrowIcon(direction: ArrowDirection): SVGElement {
-  const pathD = direction === 'right' ? 'M7 4l6 6-6 6' : 'M13 4l-6 6 6 6';
+  const pathD = direction === 'right' ? 'M4 10h12m-5-5l5 5-5 5' : 'M16 10H4m5-5l-5 5 5 5';
 
   return buildIcon({ fill: 'none', stroke: 'currentColor', 'stroke-width': '2' }, pathD, {
     'stroke-linecap': 'round',
