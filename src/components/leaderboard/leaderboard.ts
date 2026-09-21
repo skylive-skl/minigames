@@ -1,5 +1,11 @@
 import leaderboardSeed from '@/shared/data/leaderboard.json';
 import { createElement } from '@/shared/lib/dom';
+import {
+  formatCompactNumber,
+  formatStreakDays,
+  formatStreakDaysCompact,
+  formatThousands,
+} from '@/shared/lib/format';
 import type { Component } from '@/shared/types/component';
 import type { LeaderboardEntry } from '@/shared/types/player';
 import './leaderboard.scss';
@@ -13,6 +19,15 @@ function getInitials(playerName: string): string {
     .slice(0, 2)
     .map((word) => word.charAt(0))
     .join('');
+}
+
+function createDualValue(fullText: string, compactText: string): HTMLElement {
+  return createElement('span', {
+    children: [
+      createElement('span', { className: 'leaderboard__value--full', text: fullText }),
+      createElement('span', { className: 'leaderboard__value--compact', text: compactText }),
+    ],
+  });
 }
 
 function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
@@ -37,12 +52,14 @@ function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
 
   const gamesCell = createElement('td', {
     className: 'leaderboard__cell leaderboard__cell--games',
-    text: String(entry.gamesPlayed),
+    text: formatThousands(entry.gamesPlayed),
   });
 
   const scoreCell = createElement('td', {
     className: 'leaderboard__cell leaderboard__cell--score',
-    text: String(entry.totalScore),
+    children: [
+      createDualValue(formatThousands(entry.totalScore), formatCompactNumber(entry.totalScore)),
+    ],
   });
 
   const streakCell = createElement('td', {
@@ -53,7 +70,10 @@ function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
         attributes: { 'aria-hidden': 'true' },
         text: '🔥',
       }),
-      createElement('span', { text: `${String(entry.streakDays)} days` }),
+      createDualValue(
+        formatStreakDays(entry.streakDays),
+        formatStreakDaysCompact(entry.streakDays),
+      ),
     ],
   });
 
@@ -77,6 +97,18 @@ function createHeaderCell(label: string, className: string): HTMLTableCellElemen
     className: `leaderboard__heading-cell ${className}`,
     attributes: { scope: 'col' },
     text: label,
+  });
+}
+
+function createResponsiveHeaderCell(
+  fullLabel: string,
+  shortLabel: string,
+  className: string,
+): HTMLTableCellElement {
+  return createElement('th', {
+    className: `leaderboard__heading-cell ${className}`,
+    attributes: { scope: 'col' },
+    children: [createDualValue(fullLabel, shortLabel)],
   });
 }
 
@@ -105,8 +137,8 @@ export function createLeaderboard(): Component {
     children: [
       createHeaderCell('Rank', 'leaderboard__heading-cell--rank'),
       createHeaderCell('Player', 'leaderboard__heading-cell--player'),
-      createHeaderCell('Games Played', 'leaderboard__heading-cell--games'),
-      createHeaderCell('Total Score', 'leaderboard__heading-cell--score'),
+      createResponsiveHeaderCell('Games Played', 'Games', 'leaderboard__heading-cell--games'),
+      createResponsiveHeaderCell('Total Score', 'Score', 'leaderboard__heading-cell--score'),
       createHeaderCell('Streak', 'leaderboard__heading-cell--streak'),
       createHeaderCell('Favorite Game', 'leaderboard__heading-cell--favorite'),
     ],

@@ -9,3 +9,15 @@ export function formatCompactNumber(value: number): string {
 
   return `${String(truncatedTenths / 10)}K`;
 }
+
+export function formatThousands(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
+export function formatStreakDays(days: number): string {
+  return days === 1 ? '1 day' : `${String(days)} days`;
+}
+
+export function formatStreakDaysCompact(days: number): string {
+  return `${String(days)}d`;
+}
