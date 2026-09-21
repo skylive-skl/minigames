@@ -1,0 +1,354 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.auth-dialog {
+  position: fixed;
+  inset: 0;
+  width: 420px;
+  max-width: calc(100% - var(--size-4));
+  max-height: calc(100% - var(--size-6));
+  margin: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  opacity: 0;
+  transform: scale(0.95);
+
+  // `allow-discrete` + `@starting-style` lets the browser keep the dialog in
+  // the top layer long enough to animate both showModal() and close() —
+  // no JS delay hack needed to animate a native <dialog> closing.
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    overlay 0.2s ease allow-discrete,
+    display 0.2s ease allow-discrete;
+
+  &[open] {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @starting-style {
+    &[open] {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  &::backdrop {
+    background-color: rgb(36 33 69 / 0%);
+    transition:
+      background-color 0.2s ease,
+      overlay 0.2s ease allow-discrete,
+      display 0.2s ease allow-discrete;
+  }
+
+  &[open]::backdrop {
+    background-color: rgb(36 33 69 / 60%);
+  }
+
+  @starting-style {
+    &[open]::backdrop {
+      background-color: rgb(36 33 69 / 0%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::backdrop {
+      transition: none;
+    }
+  }
+}
+
+.auth-dialog__panel {
+  @include mix.hard-shadow(lg);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - var(--size-6));
+  padding: var(--size-4);
+  overflow-y: auto;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-large);
+}
+
+.auth-dialog__close {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  position: absolute;
+  top: var(--size-2);
+  right: var(--size-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4);
+  height: var(--size-4);
+  color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+
+  @include bp.hover {
+    background-color: var(--color-surface);
+  }
+}
+
+.auth-dialog__tabs {
+  display: flex;
+  flex-shrink: 0;
+  margin-bottom: var(--size-3);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-full);
+  overflow: hidden;
+}
+
+.auth-dialog__tab {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  flex: 1;
+  padding: var(--btn-medium-y) var(--btn-medium-x);
+  background-color: var(--color-white);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+  text-align: center;
+
+  &:not(.auth-dialog__tab--active) {
+    @include bp.hover {
+      background-color: var(--color-surface);
+    }
+  }
+}
+
+.auth-dialog__tab--active {
+  background-color: var(--color-on-primary);
+  color: var(--color-white);
+}
+
+.auth-dialog__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: height 0.25s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.auth-dialog__panel-content {
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.auth-dialog__panel-content--overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.auth-dialog__panel-content--hidden {
+  opacity: 0;
+}
+
+.auth-dialog__heading {
+  @include type.headline-medium;
+
+  margin: 0 0 var(--size-1);
+  color: var(--color-on-primary);
+}
+
+.auth-dialog__subtext {
+  @include type.body-medium;
+
+  margin: 0 0 var(--size-3);
+  color: var(--color-on-bg);
+}
+
+.auth-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+.auth-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+
+.auth-dialog__label {
+  @include type.label-large;
+
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+}
+
+.auth-dialog__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-dialog__input-icon {
+  position: absolute;
+  left: var(--size-2);
+  display: inline-flex;
+  color: var(--color-on-bg-low);
+}
+
+.auth-dialog__input {
+  @include type.body-medium;
+
+  width: 100%;
+  padding: var(--size-2) var(--size-2) var(--size-2) var(--size-7);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+  color: var(--color-on-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+
+  &::placeholder {
+    color: var(--color-text-placeholder);
+  }
+
+  @include bp.hover {
+    border-color: var(--color-tertiary);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-tertiary);
+  }
+}
+
+.auth-dialog__toggle-password {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  position: absolute;
+  right: var(--size-2);
+  display: inline-flex;
+  color: var(--color-on-bg-low);
+
+  @include bp.hover {
+    color: var(--color-on-primary);
+  }
+}
+
+.auth-dialog__forgot {
+  @include type.body-small;
+  @include mix.focus-ring;
+
+  align-self: flex-end;
+  margin-top: calc(var(--size-1) * -1);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+
+  @include bp.hover {
+    color: var(--color-tertiary);
+  }
+}
+
+.auth-dialog__submit {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include mix.hard-shadow(sm);
+  @include type.label-large;
+
+  padding: var(--btn-large-y) var(--btn-large-x);
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+  text-align: center;
+
+  @include bp.hover {
+    background-color: var(--color-primary-low);
+  }
+
+  &:active {
+    filter: brightness(0.94);
+  }
+}
+
+.auth-dialog__divider {
+  @include type.body-small;
+
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  color: var(--color-on-bg-low);
+  font-weight: var(--weight-medium);
+
+  &::before,
+  &::after {
+    height: 1px;
+    background-color: var(--color-outline);
+    content: '';
+    flex: 1;
+  }
+}
+
+.auth-dialog__google-button {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include mix.hard-shadow(sm);
+  @include type.label-large;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-2);
+  padding: var(--btn-large-y) var(--btn-large-x);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+
+  @include bp.hover {
+    background-color: var(--color-surface-low);
+  }
+
+  &:active {
+    filter: brightness(0.94);
+  }
+}
+
+.auth-dialog__switch-text {
+  @include type.body-small;
+
+  margin-top: var(--size-3);
+  color: var(--color-on-bg);
+  text-align: center;
+}
+
+.auth-dialog__switch-link {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+
+  @include bp.hover {
+    color: var(--color-tertiary);
+  }
+}
