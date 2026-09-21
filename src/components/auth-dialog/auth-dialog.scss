@@ -12,9 +12,54 @@
   padding: 0;
   background: transparent;
   border: none;
+  opacity: 0;
+  transform: scale(0.95);
+
+  // `allow-discrete` + `@starting-style` lets the browser keep the dialog in
+  // the top layer long enough to animate both showModal() and close() —
+  // no JS delay hack needed to animate a native <dialog> closing.
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    overlay 0.2s ease allow-discrete,
+    display 0.2s ease allow-discrete;
+
+  &[open] {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @starting-style {
+    &[open] {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
 
   &::backdrop {
+    background-color: rgb(36 33 69 / 0%);
+    transition:
+      background-color 0.2s ease,
+      overlay 0.2s ease allow-discrete,
+      display 0.2s ease allow-discrete;
+  }
+
+  &[open]::backdrop {
     background-color: rgb(36 33 69 / 60%);
+  }
+
+  @starting-style {
+    &[open]::backdrop {
+      background-color: rgb(36 33 69 / 0%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::backdrop {
+      transition: none;
+    }
   }
 }
 
