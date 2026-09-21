@@ -1,5 +1,6 @@
 import { createCarousel } from '@/components/carousel/carousel';
 import { createDeveloperCta } from '@/components/developer-cta/developer-cta';
+import { createFooter } from '@/components/footer/footer';
 import { createHero } from '@/components/hero/hero';
 import { createLeaderboard } from '@/components/leaderboard/leaderboard';
 import { createElement } from '@/shared/lib/dom';
@@ -11,9 +12,16 @@ export function createHomePage(): Component {
   const carousel = createCarousel();
   const leaderboard = createLeaderboard();
   const developerCta = createDeveloperCta();
+  const footer = createFooter();
   const element = createElement('div', {
     className: 'home-page',
-    children: [hero.element, carousel.element, leaderboard.element, developerCta.element],
+    children: [
+      hero.element,
+      carousel.element,
+      leaderboard.element,
+      developerCta.element,
+      footer.element,
+    ],
   });
 
   return { element };
