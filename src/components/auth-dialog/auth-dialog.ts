@@ -31,6 +31,17 @@ const HEADING_IDS: Readonly<Record<DialogMode, string>> = {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function lockBodyScroll(): void {
+  const scrollbarWidth = globalThis.innerWidth - document.documentElement.clientWidth;
+  document.body.style.overflow = 'hidden';
+  document.body.style.paddingRight = scrollbarWidth > 0 ? `${String(scrollbarWidth)}px` : '';
+}
+
+function unlockBodyScroll(): void {
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+}
+
 function isDialogMode(value: unknown): value is DialogMode {
   return value === DialogMode.Login || value === DialogMode.Register;
 }
@@ -410,6 +421,7 @@ export function createAuthDialog(): Component {
 
   dialog.addEventListener('close', () => {
     document.removeEventListener('keydown', handleKeydown);
+    unlockBodyScroll();
     lastFocusedElement?.focus();
   });
 
@@ -455,6 +467,7 @@ export function createAuthDialog(): Component {
       document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
     setMode(detail);
     dialog.showModal();
+    lockBodyScroll();
     document.addEventListener('keydown', handleKeydown);
   }
 
@@ -466,6 +479,7 @@ export function createAuthDialog(): Component {
     destroy: (): void => {
       document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, handleOpenRequest);
       document.removeEventListener('keydown', handleKeydown);
+      unlockBodyScroll();
     },
   };
 }

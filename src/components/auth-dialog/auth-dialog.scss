@@ -134,6 +134,7 @@
 .auth-dialog__body {
   position: relative;
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   overflow: hidden;
   transition: height 0.25s ease;
