@@ -1,0 +1,86 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.auth-dialog {
+  position: fixed;
+  inset: 0;
+  width: 420px;
+  max-width: calc(100% - var(--size-4));
+  max-height: calc(100% - var(--size-6));
+  margin: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+
+  &::backdrop {
+    background-color: rgb(36 33 69 / 60%);
+  }
+}
+
+.auth-dialog__panel {
+  @include mix.hard-shadow(lg);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - var(--size-6));
+  padding: var(--size-4);
+  overflow-y: auto;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-large);
+}
+
+.auth-dialog__close {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  position: absolute;
+  top: var(--size-2);
+  right: var(--size-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4);
+  height: var(--size-4);
+  color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+
+  @include bp.hover {
+    background-color: var(--color-surface);
+  }
+}
+
+.auth-dialog__tabs {
+  display: flex;
+  flex-shrink: 0;
+  margin-bottom: var(--size-3);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-full);
+  overflow: hidden;
+}
+
+.auth-dialog__tab {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  flex: 1;
+  padding: var(--btn-medium-y) var(--btn-medium-x);
+  background-color: var(--color-white);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.auth-dialog__tab--active {
+  background-color: var(--color-on-primary);
+  color: var(--color-white);
+}
+
+.auth-dialog__body {
+  display: flex;
+  flex-direction: column;
+}
