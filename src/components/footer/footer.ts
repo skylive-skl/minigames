@@ -1,6 +1,11 @@
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
 import { createElement } from '@/shared/lib/dom';
-import { createCodeIcon } from '@/shared/ui/icon/icon';
+import {
+  createCodeIcon,
+  createMessageIcon,
+  createRssIcon,
+  createShareIcon,
+} from '@/shared/ui/icon/icon';
 import type { Component } from '@/shared/types/component';
 import './footer.scss';
 
@@ -8,6 +13,16 @@ const HOME_HREF = '#/home';
 const RS_SCHOOL_HREF = 'https://rs.school/courses/short-track';
 const GITHUB_HREF = 'https://github.com/skylive-skl';
 const GITHUB_HANDLE = '@skylive-skl';
+
+interface NavColumn {
+  readonly heading: string;
+  readonly links: readonly string[];
+}
+
+const NAV_COLUMNS: readonly NavColumn[] = [
+  { heading: 'Explore', links: ['Home', 'Library', 'Categories', 'Tournaments'] },
+  { heading: 'Company', links: ['About Us', 'Contact', 'Privacy Policy', 'Terms of Service'] },
+];
 
 function createBrand(): HTMLElement {
   const badge = createElement('img', {
@@ -27,6 +42,55 @@ function createBrand(): HTMLElement {
   });
 
   return createElement('div', { className: 'footer__brand', children: [logo, description] });
+}
+
+function createNavColumn(column: NavColumn): HTMLElement {
+  const heading = createElement('h3', {
+    className: 'footer__nav-heading',
+    text: column.heading,
+  });
+  const list = createElement('ul', {
+    className: 'footer__nav-list',
+    children: column.links.map((label) =>
+      createElement('li', {
+        children: [
+          createElement('a', {
+            className: 'footer__nav-link',
+            text: label,
+            attributes: { href: HOME_HREF },
+          }),
+        ],
+      }),
+    ),
+  });
+
+  return createElement('nav', {
+    className: 'footer__nav',
+    attributes: { 'aria-label': column.heading },
+    children: [heading, list],
+  });
+}
+
+function createSocialLink(label: string, icon: SVGElement): HTMLAnchorElement {
+  return createElement('a', {
+    className: 'footer__social-link',
+    attributes: { href: HOME_HREF, 'aria-label': label },
+    children: [icon],
+  });
+}
+
+function createCommunity(): HTMLElement {
+  const heading = createElement('h3', { className: 'footer__nav-heading', text: 'Community' });
+  const social = createElement('div', {
+    className: 'footer__social',
+    children: [
+      createSocialLink('Share MiniGames', createShareIcon()),
+      createSocialLink('Community chat', createMessageIcon()),
+      createSocialLink('RSS feed', createRssIcon()),
+    ],
+  });
+
+  return createElement('div', { className: 'footer__community', children: [heading, social] });
 }
 
 function createMetaLink(
@@ -75,12 +139,22 @@ function createBottomBar(): HTMLElement {
 }
 
 export function createFooter(): Component {
-  const top = createElement('div', { className: 'footer__top', children: [createBrand()] });
+  const top = createElement('div', {
+    className: 'footer__top',
+    children: [
+      createBrand(),
+      ...NAV_COLUMNS.map((column) => createNavColumn(column)),
+      createCommunity(),
+    ],
+  });
+
   const divider = createElement('hr', { className: 'footer__divider' });
+
   const inner = createElement('div', {
     className: 'footer__inner',
     children: [top, divider, createBottomBar()],
   });
+
   const element = createElement('footer', { className: 'footer', children: [inner] });
 
   return { element };
