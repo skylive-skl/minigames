@@ -1,0 +1,286 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.leaderboard {
+  @include mix.container;
+
+  padding-block: var(--size-6);
+}
+
+.leaderboard__header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1);
+  margin-bottom: var(--size-3);
+}
+
+.leaderboard__accent {
+  display: inline-block;
+  width: var(--size-1);
+  height: var(--size-3);
+  background-color: var(--color-primary);
+  border-radius: var(--corner-full);
+}
+
+.leaderboard__heading {
+  @include type.headline-medium;
+
+  margin: 0;
+  color: var(--color-on-primary);
+
+  @include bp.desktop-up {
+    @include type.headline-large;
+  }
+}
+
+.leaderboard__table {
+  @include mix.hard-shadow(lg);
+
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-on-primary);
+  border-collapse: collapse;
+  border-radius: var(--corner-large);
+
+  // Auto layout lets a long player name grow past the viewport (the intrinsic
+  // content width wins over `width: 100%`); fixed layout makes the defined
+  // column widths below actually bound the content so ellipsis can kick in.
+  @include bp.mobile-down {
+    table-layout: fixed;
+  }
+}
+
+.leaderboard__heading-cell {
+  @include type.label-large;
+
+  padding: var(--size-2);
+  background-color: var(--color-tertiary);
+  color: var(--color-white);
+  font-weight: var(--weight-bold);
+  text-align: left;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+
+  @include bp.mobile-down {
+    overflow: hidden;
+    padding: var(--size-1) var(--size-05);
+    font-size: var(--label-small);
+    white-space: nowrap;
+  }
+}
+
+.leaderboard__heading-cell--games,
+.leaderboard__cell--games {
+  @include bp.mobile-down {
+    display: none;
+  }
+}
+
+.leaderboard__heading-cell--rank {
+  @include bp.mobile-down {
+    width: 12%;
+  }
+}
+
+.leaderboard__heading-cell--player {
+  @include bp.mobile-down {
+    width: 46%;
+  }
+}
+
+.leaderboard__heading-cell--score {
+  @include bp.mobile-down {
+    width: 23%;
+  }
+}
+
+.leaderboard__heading-cell--streak {
+  @include bp.mobile-down {
+    width: 19%;
+  }
+}
+
+.leaderboard__heading-cell--favorite,
+.leaderboard__cell--favorite {
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
+.leaderboard__row {
+  border-top: 1px solid var(--color-outline);
+}
+
+.leaderboard__row:nth-child(even) {
+  background-color: var(--color-white);
+}
+
+.leaderboard__row--extra {
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
+.leaderboard__cell {
+  @include type.body-medium;
+
+  padding: var(--size-2);
+  color: var(--color-on-primary);
+
+  @include bp.mobile-down {
+    padding: var(--size-1) var(--size-05);
+  }
+}
+
+.leaderboard__cell--rank {
+  color: var(--color-on-bg);
+  font-weight: var(--weight-bold);
+}
+
+.leaderboard__row:first-child .leaderboard__cell--rank {
+  color: var(--color-primary-high);
+}
+
+.leaderboard__cell--player {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+
+  @include bp.mobile-down {
+    gap: var(--size-1);
+  }
+}
+
+.leaderboard__avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4);
+  height: var(--size-4);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-full);
+  color: var(--color-on-primary);
+  font-size: var(--label-medium);
+  font-weight: var(--weight-bold);
+
+  @include bp.mobile-down {
+    width: var(--size-3);
+    height: var(--size-3);
+    font-size: var(--label-small);
+  }
+}
+
+.leaderboard__avatar--1 {
+  background-color: var(--color-primary);
+}
+
+.leaderboard__avatar--2 {
+  background-color: var(--color-avatar-2);
+}
+
+.leaderboard__avatar--3 {
+  background-color: var(--color-avatar-3);
+}
+
+.leaderboard__avatar--4 {
+  background-color: var(--color-avatar-4);
+}
+
+.leaderboard__avatar--5 {
+  background-color: var(--color-avatar-5);
+}
+
+.leaderboard__player-name {
+  min-width: 0;
+  font-weight: var(--weight-medium);
+
+  @include bp.mobile-down {
+    @include mix.text-truncate;
+  }
+}
+
+.leaderboard__flame {
+  margin-right: var(--size-05);
+}
+
+.leaderboard__chip {
+  @include type.label-medium;
+
+  display: inline-block;
+  padding: var(--size-05) var(--size-2);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--corner-full);
+  color: var(--color-on-primary);
+}
+
+// Two spans of the same value are always rendered; CSS toggles which one is
+// visible per breakpoint (see plan section 7, Этап 11 point 5) — avoids
+// re-rendering text via matchMedia and keeps compact values out of CSS
+// content, which can't be selected/copied by assistive tech.
+.leaderboard__value--compact {
+  display: none;
+}
+
+.leaderboard__cell--score {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.mobile-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
+}
+
+.leaderboard__cell--streak {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.tablet-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
+}
+
+.leaderboard__heading-cell--games,
+.leaderboard__heading-cell--score {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.tablet-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
+}
