@@ -20,17 +20,17 @@ MiniGames is a single-page application showcasing a catalog of browser mini-game
 
 ## NPM scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Start the development server |
-| `npm run build` | Build the production bundle |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Run ESLint with autofix |
-| `npm run format` | Format the codebase with Prettier |
-| `npm run format:check` | Check formatting with Prettier |
-| `npm run type-check` | Run the TypeScript compiler in no-emit mode |
-| `npm run visual-diff` | Compare the built pages against Figma reference screenshots |
+| Script                 | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `npm run dev`          | Start the development server                                |
+| `npm run build`        | Build the production bundle                                 |
+| `npm run preview`      | Preview the production build locally                        |
+| `npm run lint`         | Run ESLint                                                  |
+| `npm run lint:fix`     | Run ESLint with autofix                                     |
+| `npm run format`       | Format the codebase with Prettier                           |
+| `npm run format:check` | Check formatting with Prettier                              |
+| `npm run type-check`   | Run the TypeScript compiler in no-emit mode                 |
+| `npm run visual-diff`  | Compare the built pages against Figma reference screenshots |
 
 ## Known deviations from the Figma mockup
 
@@ -38,4 +38,6 @@ MiniGames is a single-page application showcasing a catalog of browser mini-game
 
 ## Deployment
 
-_Link will be added after deployment._
+Live on GitHub Pages: https://skylive-skl.github.io/minigames/
+
+Deployed automatically via GitHub Actions (`.github/workflows/deploy.yml`) on every push to `main`.
