@@ -86,8 +86,11 @@ function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
     children: [favoriteChip],
   });
 
+  const rowClassName =
+    entry.rank > 3 ? 'leaderboard__row leaderboard__row--extra' : 'leaderboard__row';
+
   return createElement('tr', {
-    className: 'leaderboard__row',
+    className: rowClassName,
     children: [rankCell, playerCell, gamesCell, scoreCell, streakCell, favoriteCell],
   });
 }

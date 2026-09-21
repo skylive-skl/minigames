@@ -43,6 +43,13 @@
   border: 2px solid var(--color-on-primary);
   border-collapse: collapse;
   border-radius: var(--corner-large);
+
+  // Auto layout lets a long player name grow past the viewport (the intrinsic
+  // content width wins over `width: 100%`); fixed layout makes the defined
+  // column widths below actually bound the content so ellipsis can kick in.
+  @include bp.mobile-down {
+    table-layout: fixed;
+  }
 }
 
 .leaderboard__heading-cell {
@@ -55,6 +62,51 @@
   text-align: left;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+
+  @include bp.mobile-down {
+    overflow: hidden;
+    padding: var(--size-1) var(--size-05);
+    font-size: var(--label-small);
+    white-space: nowrap;
+  }
+}
+
+.leaderboard__heading-cell--games,
+.leaderboard__cell--games {
+  @include bp.mobile-down {
+    display: none;
+  }
+}
+
+.leaderboard__heading-cell--rank {
+  @include bp.mobile-down {
+    width: 12%;
+  }
+}
+
+.leaderboard__heading-cell--player {
+  @include bp.mobile-down {
+    width: 46%;
+  }
+}
+
+.leaderboard__heading-cell--score {
+  @include bp.mobile-down {
+    width: 23%;
+  }
+}
+
+.leaderboard__heading-cell--streak {
+  @include bp.mobile-down {
+    width: 19%;
+  }
+}
+
+.leaderboard__heading-cell--favorite,
+.leaderboard__cell--favorite {
+  @include bp.tablet-down {
+    display: none;
+  }
 }
 
 .leaderboard__row {
@@ -65,11 +117,21 @@
   background-color: var(--color-white);
 }
 
+.leaderboard__row--extra {
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
 .leaderboard__cell {
   @include type.body-medium;
 
   padding: var(--size-2);
   color: var(--color-on-primary);
+
+  @include bp.mobile-down {
+    padding: var(--size-1) var(--size-05);
+  }
 }
 
 .leaderboard__cell--rank {
@@ -85,6 +147,10 @@
   display: flex;
   align-items: center;
   gap: var(--size-2);
+
+  @include bp.mobile-down {
+    gap: var(--size-1);
+  }
 }
 
 .leaderboard__avatar {
@@ -99,6 +165,12 @@
   color: var(--color-on-primary);
   font-size: var(--label-medium);
   font-weight: var(--weight-bold);
+
+  @include bp.mobile-down {
+    width: var(--size-3);
+    height: var(--size-3);
+    font-size: var(--label-small);
+  }
 }
 
 .leaderboard__avatar--1 {
@@ -124,6 +196,10 @@
 .leaderboard__player-name {
   min-width: 0;
   font-weight: var(--weight-medium);
+
+  @include bp.mobile-down {
+    @include mix.text-truncate;
+  }
 }
 
 .leaderboard__flame {
@@ -146,4 +222,65 @@
 // content, which can't be selected/copied by assistive tech.
 .leaderboard__value--compact {
   display: none;
+}
+
+.leaderboard__cell--score {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.mobile-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
+}
+
+.leaderboard__cell--streak {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.tablet-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
+}
+
+.leaderboard__heading-cell--games,
+.leaderboard__heading-cell--score {
+  .leaderboard__value--full {
+    display: inline;
+  }
+
+  .leaderboard__value--compact {
+    display: none;
+  }
+
+  @include bp.tablet-down {
+    .leaderboard__value--full {
+      display: none;
+    }
+
+    .leaderboard__value--compact {
+      display: inline;
+    }
+  }
 }
