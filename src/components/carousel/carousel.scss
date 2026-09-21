@@ -83,6 +83,10 @@
   list-style: none;
 }
 
+.carousel__item {
+  flex-shrink: 0;
+}
+
 .game-card {
   position: relative;
   display: block;
