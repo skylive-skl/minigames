@@ -33,6 +33,14 @@ export function createHeartIcon(): SVGElement {
   );
 }
 
+export function createUploadIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'none', stroke: 'currentColor', 'stroke-width': '2' },
+    'M10 13V3M6.5 6.5L10 3l3.5 3.5M4 15v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1',
+    { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+  );
+}
+
 export type ArrowDirection = 'left' | 'right';
 
 export function createArrowIcon(direction: ArrowDirection): SVGElement {
