@@ -19,6 +19,20 @@ function buildIcon(
   return svg;
 }
 
+export function createStarIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'currentColor' },
+    'M10 1.5l2.53 5.32 5.72.55-4.3 4 1.19 5.7-5.14-2.99-5.14 2.99 1.19-5.7-4.3-4 5.72-.55z',
+  );
+}
+
+export function createHeartIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'currentColor' },
+    'M10 17.3s-6.2-3.85-8.6-7.72C-0.2 6.1 2.1 2.8 5.4 2.8c1.9 0 3.4 1.1 4.6 2.6 1.2-1.5 2.7-2.6 4.6-2.6 3.3 0 5.6 3.3 4 6.78-2.4 3.87-8.6 7.72-8.6 7.72z',
+  );
+}
+
 export type ArrowDirection = 'left' | 'right';
 
 export function createArrowIcon(direction: ArrowDirection): SVGElement {
