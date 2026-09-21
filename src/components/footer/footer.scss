@@ -9,15 +9,25 @@
 .footer__inner {
   @include mix.container;
 
-  padding-block: var(--size-8) var(--size-4);
+  padding-block: var(--size-4);
+
+  @include bp.desktop-up {
+    padding-block: var(--size-8) var(--size-4);
+  }
 }
 
 .footer__top {
-  margin-bottom: var(--size-6);
+  margin-bottom: var(--size-4);
+
+  @include bp.desktop-up {
+    margin-bottom: var(--size-6);
+  }
 }
 
 .footer__brand {
-  max-width: 400px;
+  @include bp.desktop-up {
+    max-width: 400px;
+  }
 }
 
 .footer__logo {
@@ -56,28 +66,35 @@
   @include type.body-small;
 
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--size-4);
+  gap: var(--size-2) var(--size-4);
   color: var(--color-on-bg-footer);
 }
 
 .footer__copyright {
+  flex-shrink: 0;
   margin: 0;
+  white-space: nowrap;
 }
 
 .footer__meta {
   display: flex;
-  gap: var(--size-4);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: var(--size-2) var(--size-4);
 }
 
 .footer__meta-link {
   @include mix.focus-ring;
 
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: var(--size-1);
   color: var(--color-on-bg-footer);
+  white-space: nowrap;
 
   @include bp.hover {
     color: var(--color-white);
@@ -108,5 +125,7 @@
 }
 
 .footer__credit {
+  flex-shrink: 0;
   margin: 0;
+  white-space: nowrap;
 }
