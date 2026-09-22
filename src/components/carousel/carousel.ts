@@ -71,7 +71,7 @@ export function createCarousel(): Component {
     const position = TRACK_POSITIONS[index] ?? 'edge';
 
     return createElement('li', {
-      className: 'carousel__item',
+      className: `carousel__item carousel__item--${position}`,
       children: [createGameCard(game, position)],
     });
   });
