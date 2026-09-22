@@ -80,21 +80,68 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  padding-bottom: 1rem;
 }
 
+// Ratios mirror the card-size table (section 5 of the layout plan), sampled
+// per breakpoint from the Figma mockup at its 1920/768/375 reference widths.
+// Using those as flex-grow ratios (basis 0) instead of literal px widths
+// makes the cards fill the track exactly at *any* window width in between —
+// fixed px widths only fit at the exact reference width and overflowed
+// (silently clipped by .carousel__viewport's overflow: hidden) everywhere
+// else in a breakpoint's range.
 .carousel__item {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: visible;
 }
 
-// Widths/height follow the card-size table (section 5 of the layout plan),
-// sampled per breakpoint from the Figma mockup.
+.carousel__item--edge {
+  flex: 56 56 0;
+
+  @media (min-width: 481px) {
+    flex: 105 105 0;
+  }
+
+  @include bp.desktop-up {
+    flex: 120 120 0;
+  }
+}
+
+.carousel__item--center {
+  flex: 218 218 0;
+
+  @media (min-width: 481px) {
+    flex: 448 448 0;
+  }
+
+  @include bp.desktop-up {
+    flex: 816 816 0;
+  }
+}
+
+// Side cards only appear in the 5-card desktop layout; tablet/mobile show
+// just edge + center + edge (see card-size table, section 5 of the plan).
+.carousel__item--side {
+  display: none;
+
+  @include bp.desktop-up {
+    display: block;
+    flex: 288 288 0;
+  }
+}
+
 .game-card {
   container-type: inline-size;
   position: relative;
   display: block;
-  overflow: hidden;
+  width: 100%;
   height: 200px;
+  overflow: hidden;
+  border: 2px solid var(--color-on-primary);
   border-radius: var(--corner-medium);
+  /* box-shadow: var(--shadow-soft-card); */
+  box-shadow: var(--shadow-hard-sm);
 
   @media (min-width: 481px) {
     height: 280px;
@@ -102,41 +149,6 @@
 
   @include bp.desktop-up {
     height: 384px;
-  }
-}
-
-.game-card--edge {
-  width: 56px;
-
-  @media (min-width: 481px) {
-    width: 105px;
-  }
-
-  @include bp.desktop-up {
-    width: 120px;
-  }
-}
-
-.game-card--center {
-  width: 218px;
-
-  @media (min-width: 481px) {
-    width: 448px;
-  }
-
-  @include bp.desktop-up {
-    width: 816px;
-  }
-}
-
-// Side cards only appear in the 5-card desktop layout; tablet/mobile show
-// just edge + center + edge (see card-size table, section 5 of the plan).
-.game-card--side {
-  display: none;
-
-  @include bp.desktop-up {
-    display: block;
-    width: 288px;
   }
 }
 
@@ -155,13 +167,16 @@
   display: none;
   flex-direction: column;
   gap: var(--size-05);
-  padding: var(--size-2);
-  background: linear-gradient(0deg, rgb(0 0 0 / 65%) 0%, rgb(0 0 0 / 0%) 100%);
+  padding: var(--size-1);
+  background: linear-gradient(0deg, rgb(0 0 0 / 80%) 50%, rgb(0 0 0 / 0%) 100%);
 
   // The 288px rule (RSS-QS-1-4-4): overlay only appears once the card itself
   // is at least 288px wide, regardless of viewport — hence a container query
-  // instead of a viewport media query.
-  @container (min-width: 288px) {
+  // instead of a viewport media query. Container queries measure the
+  // content box, so the card's 2px border (4px total) has to be added back
+  // to keep the threshold matching the card's actual outer 288px width.
+  // calc(288px - 4px)
+  @container (min-width: 284px) {
     display: flex;
   }
 }
