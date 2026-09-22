@@ -1,0 +1,178 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.burger-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden; // belt-and-suspenders: no horizontal scrollbar during the slide-in transition
+  visibility: hidden;
+  pointer-events: none;
+
+  @include bp.desktop-up {
+    display: none;
+  }
+}
+
+.burger-menu--open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.burger-menu__panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  padding: var(--size-3);
+  background-color: var(--color-bg-footer);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.burger-menu--open .burger-menu__panel {
+  transform: translateX(0);
+}
+
+.burger-menu__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.burger-menu__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  color: var(--color-white);
+}
+
+.burger-menu__logo-badge {
+  display: block;
+  width: var(--size-4);
+  height: var(--size-4);
+
+  // The exported mark is drawn in navy for the light header; forcing it to white
+  // here reproduces the inverted logo used on dark surfaces in the mockup
+  // (no separate white asset was exported).
+  filter: brightness(0) invert(1);
+}
+
+.burger-menu__logo-text {
+  @include type.display-small;
+
+  color: var(--color-white);
+}
+
+.burger-menu__close {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4);
+  height: var(--size-4);
+  color: var(--color-white);
+}
+
+.burger-menu__close-icon {
+  position: relative;
+  display: inline-block;
+  width: var(--size-2);
+  height: var(--size-2);
+}
+
+.burger-menu__close-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  // No 2px token on the size scale; matches the header burger's hairline bars.
+  height: 2px;
+  background-color: currentcolor;
+  border-radius: var(--corner-full);
+}
+
+.burger-menu__close-bar--a {
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.burger-menu__close-bar--b {
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.burger-menu__nav {
+  margin-top: var(--size-4);
+}
+
+.burger-menu__links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+.burger-menu__link {
+  @include type.headline-small;
+  @include mix.focus-ring;
+
+  color: var(--color-on-bg-footer);
+
+  @include bp.hover {
+    color: var(--color-white);
+  }
+}
+
+.burger-menu__link--active {
+  color: var(--color-primary);
+}
+
+.burger-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+  margin-top: auto;
+}
+
+.burger-menu__button {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--btn-medium-y) var(--btn-medium-x);
+  border: 2px solid transparent;
+  border-radius: var(--corner-extra-small);
+  font-weight: var(--weight-bold);
+
+  &:active {
+    filter: brightness(0.94);
+  }
+}
+
+.burger-menu__button--outline {
+  border-color: var(--color-white);
+  color: var(--color-white);
+
+  @include bp.hover {
+    background-color: var(--color-bg-footer-low);
+  }
+}
+
+.burger-menu__button--primary {
+  border-color: var(--color-on-primary);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+
+  @include bp.hover {
+    background-color: var(--color-primary-low);
+  }
+}

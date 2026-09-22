@@ -1,0 +1,125 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-block: var(--size-8);
+
+  // Fallback color while the illustration loads / if it fails to load.
+  background-color: var(--color-bg-footer-lowest);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  // Darkens the illustration so the card and its text keep enough contrast
+  // at every viewport (sampled against design-refs/home-*.png).
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    content: '';
+    background-color: rgb(30 27 58 / 25%);
+  }
+
+  @media (min-width: 481px) {
+    padding-block: var(--size-9);
+  }
+
+  @include bp.desktop-up {
+    padding-block: var(--size-14);
+  }
+}
+
+.hero__card {
+  @include mix.hard-shadow(lg);
+
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 637px;
+  margin-inline: var(--size-2);
+  padding: var(--size-3);
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-large);
+
+  @media (min-width: 481px) {
+    margin-inline: var(--size-5);
+    padding: var(--size-4);
+  }
+
+  @include bp.desktop-up {
+    margin-inline: var(--size-15);
+    padding: var(--size-5);
+  }
+}
+
+.hero__heading {
+  @include type.display-small;
+
+  margin: 0;
+  color: var(--color-on-primary);
+
+  @media (min-width: 481px) {
+    @include type.display-medium;
+  }
+
+  @include bp.desktop-up {
+    @include type.display-large;
+  }
+}
+
+.hero__description {
+  @include type.body-large;
+
+  max-width: 46ch;
+  margin: var(--size-2) 0 0;
+  color: var(--color-on-bg);
+}
+
+.hero__description--desktop {
+  display: none;
+
+  @media (min-width: 481px) {
+    display: block;
+  }
+}
+
+.hero__description--mobile {
+  display: block;
+
+  @media (min-width: 481px) {
+    display: none;
+  }
+}
+
+.hero__button {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--size-3);
+  padding: var(--btn-large-y) var(--btn-large-x);
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-extra-small);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+
+  &:active {
+    filter: brightness(0.94);
+  }
+
+  @include bp.hover {
+    background-color: var(--color-primary-low);
+  }
+}

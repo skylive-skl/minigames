@@ -1,0 +1,123 @@
+@use '../../styles/breakpoints' as bp;
+@use '../../styles/mixins' as mix;
+@use '../../styles/typography' as type;
+
+.dev-cta {
+  @include mix.container;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--size-3);
+  padding-block: var(--size-4);
+
+  @include bp.desktop-up {
+    grid-template-columns: 2fr 3fr;
+    gap: var(--size-5);
+    padding-block: var(--size-6);
+  }
+}
+
+.dev-cta__illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-3);
+  background-color: var(--color-cta-illustration-bg);
+  border-radius: var(--corner-extra-large);
+
+  // Stacked (single-column) layouts give the illustration the full content
+  // width, which is much wider than its column in the desktop grid — sized
+  // by the image's own ratio it would grow far taller than the mockup shows.
+  // Pin the box to the ratio measured from the Figma export instead and
+  // letterbox the image inside it (confirmed via design-refs pixel sampling:
+  // 768 box ~687x297, 375 box ~342x205 — desktop already matches the
+  // image's natural ratio, so it's left unconstrained there).
+  @include bp.tablet-down {
+    aspect-ratio: 687 / 297;
+  }
+
+  @include bp.mobile-down {
+    aspect-ratio: 342 / 205;
+  }
+}
+
+.dev-cta__illustration-image {
+  width: 100%;
+  height: auto;
+
+  @include bp.tablet-down {
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.dev-cta__card {
+  @include mix.hard-shadow(lg);
+
+  padding: var(--size-3);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-large);
+
+  @include bp.desktop-up {
+    padding: var(--size-6);
+  }
+}
+
+.dev-cta__heading {
+  @include type.headline-medium;
+
+  margin: 0 0 var(--size-2);
+  color: var(--color-on-primary);
+
+  @include bp.desktop-up {
+    @include type.headline-large;
+  }
+}
+
+.dev-cta__text {
+  @include type.body-medium;
+
+  margin: 0 0 var(--size-3);
+  color: var(--color-on-bg);
+}
+
+.dev-cta__button {
+  @include mix.button-reset;
+  @include mix.focus-ring;
+  @include type.label-large;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  padding: var(--btn-large-y) var(--btn-large-x);
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-extra-small);
+  color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+
+  &:hover {
+    background-color: var(--color-primary-low);
+  }
+
+  &:active {
+    filter: brightness(0.94);
+  }
+}
+
+.dev-cta__contact {
+  @include type.body-small;
+
+  margin: var(--size-2) 0 0;
+  color: var(--color-on-bg-low);
+}
+
+.dev-cta__contact-link {
+  color: var(--color-on-primary);
+  font-weight: var(--weight-medium);
+
+  &:hover {
+    text-decoration: none;
+  }
+}
