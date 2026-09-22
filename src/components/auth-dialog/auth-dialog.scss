@@ -81,11 +81,11 @@
 .auth-dialog__close {
   @include mix.button-reset;
   @include mix.focus-ring;
-
   position: absolute;
   top: var(--size-2);
   right: var(--size-2);
-  display: inline-flex;
+  // display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   width: var(--size-4);
