@@ -82,9 +82,6 @@ export function createLibraryPagination(
 
   const pagesContainer = createElement('ul', {
     className: 'library-pagination__list',
-    attributes: {
-      role: 'list',
-    },
   });
 
   const renderPagination = (): void => {
@@ -95,18 +92,18 @@ export function createLibraryPagination(
     const isNextDisabled = currentPage >= totalPages;
 
     if (isPreviousDisabled) {
-      previousButton.setAttribute('disabled', 'true');
+      previousButton.disabled = true;
       previousButton.classList.add('library-pagination__arrow--disabled');
     } else {
-      previousButton.removeAttribute('disabled');
+      previousButton.disabled = false;
       previousButton.classList.remove('library-pagination__arrow--disabled');
     }
 
     if (isNextDisabled) {
-      nextButton.setAttribute('disabled', 'true');
+      nextButton.disabled = true;
       nextButton.classList.add('library-pagination__arrow--disabled');
     } else {
-      nextButton.removeAttribute('disabled');
+      nextButton.disabled = false;
       nextButton.classList.remove('library-pagination__arrow--disabled');
     }
 

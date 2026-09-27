@@ -35,7 +35,13 @@ export function initFigmaOverlay(): void {
   let offsetX = 0;
   let offsetY = 0;
 
-  const image = createElement('img', { className: 'figma-overlay-image' });
+  const image = createElement('img', {
+    className: 'figma-overlay-image',
+    attributes: {
+      alt: '',
+      'aria-hidden': 'true',
+    },
+  });
   const opacityInput = createElement('input', {
     attributes: {
       type: 'range',
