@@ -11,21 +11,33 @@ export interface LibraryGridOptions {
   readonly gamesList?: readonly Game[];
 }
 
-export function createLibraryGrid(options?: LibraryGridOptions): Component {
-  const displayGames = options?.gamesList ?? games.slice(0, LIBRARY_GAMES_PER_PAGE);
+export interface LibraryGridComponent extends Component {
+  readonly setPage: (page: number) => void;
+}
 
-  const items = displayGames.map((game) => {
-    const card = createLibraryCard(game);
-    return createElement('li', {
-      className: 'library-grid__item',
-      children: [card],
-    });
-  });
+export function createLibraryGrid(options?: LibraryGridOptions): LibraryGridComponent {
+  const allGames = options?.gamesList ?? games;
 
   const list = createElement('ul', {
     className: 'library-grid__list',
-    children: items,
   });
+
+  const renderPage = (page: number): void => {
+    const startIndex = (page - 1) * LIBRARY_GAMES_PER_PAGE;
+    const pageGames = allGames.slice(startIndex, startIndex + LIBRARY_GAMES_PER_PAGE);
+
+    const items = pageGames.map((game) => {
+      const card = createLibraryCard(game);
+      return createElement('li', {
+        className: 'library-grid__item',
+        children: [card],
+      });
+    });
+
+    list.replaceChildren(...items);
+  };
+
+  renderPage(1);
 
   const element = createElement('section', {
     className: 'library-grid',
@@ -33,5 +45,10 @@ export function createLibraryGrid(options?: LibraryGridOptions): Component {
     children: [list],
   });
 
-  return { element };
+  return {
+    element,
+    setPage: (page: number): void => {
+      renderPage(page);
+    },
+  };
 }
