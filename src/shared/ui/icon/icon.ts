@@ -67,6 +67,28 @@ export function createChevronDownIcon(): SVGElement {
   );
 }
 
+export function createChevronLeftIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'none', stroke: 'currentColor', 'stroke-width': '2' },
+    'M12.5 15l-5-5 5-5',
+    {
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+  );
+}
+
+export function createChevronRightIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'none', stroke: 'currentColor', 'stroke-width': '2' },
+    'M7.5 5l5 5-5 5',
+    {
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+  );
+}
+
 export function createShareIcon(): SVGElement {
   const svg = createIconFrame({ fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' });
   const line = createSvgElement('path', {
