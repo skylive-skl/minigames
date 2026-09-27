@@ -10,6 +10,7 @@ import type { Component } from '@/shared/types/component';
 import './footer.scss';
 
 const HOME_HREF = '#/home';
+const LIBRARY_HREF = '#/library';
 const RS_SCHOOL_HREF = 'https://rs.school/courses/short-track';
 const GITHUB_HREF = 'https://github.com/skylive-skl';
 const GITHUB_HANDLE = '@skylive-skl';
@@ -23,6 +24,10 @@ const NAV_COLUMNS: readonly NavColumn[] = [
   { heading: 'Explore', links: ['Home', 'Library', 'Categories', 'Tournaments'] },
   { heading: 'Company', links: ['About Us', 'Contact', 'Privacy Policy', 'Terms of Service'] },
 ];
+
+function getNavLinkHref(label: string): string {
+  return label === 'Library' ? LIBRARY_HREF : HOME_HREF;
+}
 
 function createBrand(): HTMLElement {
   const badge = createElement('img', {
@@ -57,7 +62,7 @@ function createNavColumn(column: NavColumn): HTMLElement {
           createElement('a', {
             className: 'footer__nav-link',
             text: label,
-            attributes: { href: HOME_HREF },
+            attributes: { href: getNavLinkHref(label) },
           }),
         ],
       }),
