@@ -435,4 +435,210 @@
       background-color: #fbd2a4;
     }
   }
+
+  &__comments {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2);
+    margin-top: var(--size-1);
+  }
+
+  &__comments-title {
+    @include type.headline-small;
+
+    margin: 0;
+    font-weight: var(--weight-bold);
+    color: var(--color-on-primary);
+  }
+
+  &__comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1);
+    padding: var(--size-2);
+    background-color: var(--color-surface);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-medium);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  &__comment-input-row {
+    display: flex;
+    gap: var(--size-1);
+    align-items: flex-start;
+  }
+
+  &__avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-4);
+    height: var(--size-4);
+    font-size: var(--label-medium);
+    font-weight: var(--weight-bold);
+    color: var(--color-on-primary);
+    border: 1.5px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+
+    &--user {
+      background-color: var(--color-avatar-1);
+    }
+  }
+
+  &__comment-input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 40px;
+    max-height: 88px;
+    padding: var(--size-1) var(--size-2);
+    font-family: var(--font-main);
+    font-size: var(--body-medium);
+    line-height: 1.4;
+    color: var(--color-on-primary);
+    resize: none;
+    background-color: var(--color-white);
+    border: 1.5px solid var(--color-on-primary);
+    border-radius: var(--corner-small);
+    outline: none;
+    overflow-y: hidden;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:focus-visible {
+      border-color: var(--color-tertiary);
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 1px;
+    }
+
+    &::placeholder {
+      color: var(--color-text-placeholder);
+    }
+  }
+
+  &__comment-form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__button--submit {
+    min-height: 36px;
+    padding: var(--size-05) var(--size-2);
+    font-size: var(--label-large);
+    color: var(--color-on-primary);
+    background-color: var(--color-primary);
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-primary-low);
+      }
+    }
+  }
+
+  &__comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  &__comment-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1);
+    padding: var(--size-2);
+    background-color: var(--color-white);
+    border: 1.5px solid var(--color-on-primary);
+    border-radius: var(--corner-medium);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  &__comment-header {
+    display: flex;
+    gap: var(--size-1);
+    align-items: center;
+  }
+
+  &__comment-meta {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__comment-author {
+    font-size: var(--label-large);
+    font-weight: var(--weight-bold);
+    color: var(--color-on-primary);
+  }
+
+  &__comment-date {
+    font-size: var(--label-small);
+    color: var(--color-on-bg-low);
+  }
+
+  &__comment-text {
+    @include type.body-medium;
+
+    margin: 0;
+    line-height: 1.5;
+    color: var(--color-on-bg);
+  }
+
+  &__comment-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__comment-like-button {
+    @include mix.button-reset;
+
+    display: inline-flex;
+    gap: var(--size-05);
+    align-items: center;
+    padding: var(--size-05) var(--size-1);
+    font-size: var(--label-small);
+    font-weight: var(--weight-bold);
+    color: var(--color-on-primary);
+    cursor: pointer;
+    background-color: var(--color-bg);
+    border: 1.5px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-surface);
+        transform: translateY(-1px);
+      }
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 1px;
+    }
+
+    &--active,
+    &[aria-pressed='true'] {
+      color: var(--color-on-primary);
+      background-color: var(--color-secondary);
+
+      svg {
+        color: var(--color-like);
+        fill: var(--color-like);
+      }
+    }
+  }
+
+  &__comment-like-icon {
+    width: 14px;
+    height: 14px;
+  }
 }
