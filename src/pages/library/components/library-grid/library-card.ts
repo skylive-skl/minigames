@@ -1,3 +1,4 @@
+import { categories } from '@/data/categories';
 import { dispatchGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import { formatCompactNumber } from '@/shared/lib/format';
@@ -17,14 +18,11 @@ function getCardImageUrl(slug: string): string {
 
 export function createLibraryCard(game: Game): HTMLElement {
   const isFree = game.price.toLowerCase().includes('free');
-  const badgeClass = isFree
-    ? 'library-card__badge library-card__badge--free'
-    : 'library-card__badge library-card__badge--paid';
+  const priceModifier = isFree ? 'library-card__price--free' : 'library-card__price--paid';
 
-  const badge = createElement('span', {
-    className: badgeClass,
-    text: game.price,
-  });
+  const categoryItem = categories.find((c) => c.slug === game.category);
+  const categoryLabel =
+    categoryItem?.label ?? game.category.charAt(0).toUpperCase() + game.category.slice(1);
 
   const image = createElement('img', {
     className: 'library-card__image',
@@ -37,12 +35,37 @@ export function createLibraryCard(game: Game): HTMLElement {
 
   const media = createElement('div', {
     className: 'library-card__media',
-    children: [image, badge],
+    children: [image],
   });
 
   const title = createElement('h2', {
     className: 'library-card__title',
     text: game.name,
+  });
+
+  const categoryPill = createElement('span', {
+    className: 'library-card__category',
+    text: categoryLabel,
+  });
+
+  const titleGroup = createElement('div', {
+    className: 'library-card__title-group',
+    children: [title, categoryPill],
+  });
+
+  const desktopPrice = createElement('span', {
+    className: `library-card__price library-card__price--desktop ${priceModifier}`,
+    text: game.price,
+  });
+
+  const cardHeader = createElement('div', {
+    className: 'library-card__header',
+    children: [titleGroup, desktopPrice],
+  });
+
+  const description = createElement('p', {
+    className: 'library-card__description',
+    text: game.shortDescription,
   });
 
   const rating = createElement('span', {
@@ -58,14 +81,19 @@ export function createLibraryCard(game: Game): HTMLElement {
     ],
   });
 
-  const meta = createElement('div', {
-    className: 'library-card__meta',
+  const stats = createElement('div', {
+    className: 'library-card__stats',
     children: [rating, likes],
   });
 
-  const description = createElement('p', {
-    className: 'library-card__description',
-    text: game.shortDescription,
+  const mobilePrice = createElement('span', {
+    className: `library-card__price library-card__price--mobile ${priceModifier}`,
+    text: game.price,
+  });
+
+  const meta = createElement('div', {
+    className: 'library-card__meta',
+    children: [stats, mobilePrice],
   });
 
   const detailsButton = createElement('button', {
@@ -82,12 +110,12 @@ export function createLibraryCard(game: Game): HTMLElement {
 
   const footer = createElement('div', {
     className: 'library-card__footer',
-    children: [detailsButton],
+    children: [meta, detailsButton],
   });
 
   const body = createElement('div', {
     className: 'library-card__body',
-    children: [title, meta, description, footer],
+    children: [cardHeader, description, footer],
   });
 
   return createElement('article', {
