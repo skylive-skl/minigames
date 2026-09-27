@@ -1,0 +1,28 @@
+import type { GameComment } from '@/shared/types/game';
+
+export const tukoniComments: readonly GameComment[] = [
+  {
+    commentId: 'c5d9f2a1-7c3b-4e8f-9a0d-000000000001',
+    authorName: 'ForestDweller',
+    text: "The hand-drawn art is absolutely magical \u{1F344} Every location feels like a page from a children's storybook. The mushroom village made me cry happy tears!",
+    likesCount: 12,
+    isLikedByCurrentUser: false,
+    createdAt: '2026-08-30T07:00:00Z',
+  },
+  {
+    commentId: 'c5d9f2a1-7c3b-4e8f-9a0d-000000000002',
+    authorName: 'HerbalTeaLover',
+    text: 'Perfect cozy evening game — brew a cup of chamomile, wrap in a blanket and help the little Tukoni prepare for winter. The puzzles are gentle but satisfying.',
+    likesCount: 5,
+    isLikedByCurrentUser: false,
+    createdAt: '2026-08-29T15:30:00Z',
+  },
+  {
+    commentId: 'c5d9f2a1-7c3b-4e8f-9a0d-000000000003',
+    authorName: 'CottageCoreMia',
+    text: 'I want to live inside this game forever \u{1F33F} The NPCs are so charming, the tea recipes are real, and the atmosphere is pure warmth and calm.',
+    likesCount: 8,
+    isLikedByCurrentUser: false,
+    createdAt: '2026-08-27T20:10:00Z',
+  },
+];
