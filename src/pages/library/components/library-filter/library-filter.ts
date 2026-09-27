@@ -77,29 +77,28 @@ function enableDragScroll(container: HTMLElement): () => void {
   };
 }
 
+function getSortDisplayText(label: string): string {
+  return `Sort by: ${label}`;
+}
+
 export function createLibraryFilter(): Component {
   let activeCategory: CategorySlug = 'all';
   let activeSortId = SORT_OPTIONS[0]?.id ?? 'popular';
   let isSortOpen = false;
 
-  const accent = createElement('span', {
-    className: 'library-filter__accent',
-    attributes: { 'aria-hidden': 'true' },
-  });
-
   const heading = createElement('h1', {
     className: 'library-filter__heading',
-    text: 'All Games',
+    text: 'Game Library',
   });
 
-  const titleGroup = createElement('div', {
-    className: 'library-filter__title-group',
-    children: [accent, heading],
+  const subtitle = createElement('p', {
+    className: 'library-filter__subtitle',
+    text: 'Browse our collection of casual mini-games',
   });
 
   const header = createElement('div', {
     className: 'library-filter__header',
-    children: [titleGroup],
+    children: [heading, subtitle],
   });
 
   const chipButtons: { button: HTMLButtonElement; slug: CategorySlug }[] = [];
@@ -151,7 +150,7 @@ export function createLibraryFilter(): Component {
 
   const sortLabel = createElement('span', {
     className: 'library-filter__sort-label',
-    text: SORT_OPTIONS[0]?.label ?? 'Popular',
+    text: getSortDisplayText(SORT_OPTIONS[0]?.label ?? 'Popular'),
   });
 
   const sortIcon = createChevronDownIcon();
@@ -192,7 +191,7 @@ export function createLibraryFilter(): Component {
 
   const selectSort = (option: SortOption): void => {
     activeSortId = option.id;
-    sortLabel.textContent = option.label;
+    sortLabel.textContent = getSortDisplayText(option.label);
     for (const entry of sortOptionItems) {
       const isSelected = entry.option.id === activeSortId;
       entry.item.classList.toggle('library-filter__sort-option--active', isSelected);
