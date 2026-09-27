@@ -56,6 +56,17 @@ export function createArrowIcon(direction: ArrowDirection): SVGElement {
   });
 }
 
+export function createChevronDownIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'none', stroke: 'currentColor', 'stroke-width': '2' },
+    'M5 7.5l5 5 5-5',
+    {
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+  );
+}
+
 export function createShareIcon(): SVGElement {
   const svg = createIconFrame({ fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' });
   const line = createSvgElement('path', {
