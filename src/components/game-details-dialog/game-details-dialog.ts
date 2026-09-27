@@ -1,8 +1,10 @@
+import { tukoniComments } from '@/data/comments-tukoni';
 import { tukoniGameDetails } from '@/data/game-tukoni';
 import { onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
+import { createGameDetailsComments } from './game-details-comments';
 import { createGameDetailsHero } from './game-details-hero';
 import { createGameDetailsInfo } from './game-details-info';
 import { createGameDetailsRecords } from './game-details-records';
@@ -48,10 +50,11 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   const hero = createGameDetailsHero({ title: tukoniGameDetails.name });
   const info = createGameDetailsInfo(tukoniGameDetails);
   const records = createGameDetailsRecords(tukoniGameDetails.topRecords);
+  const comments = createGameDetailsComments(tukoniComments);
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
-    children: [info.element, records],
+    children: [info.element, records, comments.element],
   });
 
   const panel = createElement('div', {
@@ -124,6 +127,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     info.resetFavorite();
+    comments.reset();
     lastFocusedElement?.focus();
   });
 

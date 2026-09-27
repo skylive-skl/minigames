@@ -132,13 +132,11 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
 
   function updateFavoriteState(): void {
     favoriteButton.setAttribute('aria-pressed', String(isFavoriteActive));
-    if (isFavoriteActive) {
-      favoriteButton.classList.add('game-details-dialog__button--favorite-active');
-      favoriteText.textContent = 'In Favorites';
-    } else {
-      favoriteButton.classList.remove('game-details-dialog__button--favorite-active');
-      favoriteText.textContent = 'Add to Favorites';
-    }
+    favoriteButton.classList.toggle(
+      'game-details-dialog__button--favorite-active',
+      isFavoriteActive,
+    );
+    favoriteText.textContent = isFavoriteActive ? 'In Favorites' : 'Add to Favorites';
   }
 
   const actions = createElement('div', {
