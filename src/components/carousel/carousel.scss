@@ -47,87 +47,173 @@
 
 .carousel__arrow {
   @include mix.button-reset;
-  @include mix.focus-ring;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--size-6);
   height: var(--size-6);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  background-color: var(--color-white);
   border: 2px solid var(--color-on-primary);
   border-radius: var(--corner-full);
-  background-color: var(--color-white);
-  color: var(--color-on-primary);
+  box-shadow: var(--shadow-hard-sm);
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
 
-  &:disabled {
-    cursor: not-allowed;
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--color-surface);
+      box-shadow: var(--shadow-hard-md);
+      transform: translateY(-1px);
+    }
+  }
+
+  &:active {
+    box-shadow: var(--shadow-hard-sm);
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: 2px;
+  }
+
+  &--right {
+    background-color: var(--color-primary);
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-primary-low);
+      }
+    }
   }
 }
 
-.carousel__arrow--right {
-  background-color: var(--color-primary);
-}
-
 .carousel__viewport {
+  position: relative;
   overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+
+  &--grabbing {
+    cursor: grabbing;
+  }
 }
 
 .carousel__track {
+  position: relative;
   display: flex;
   align-items: stretch;
   justify-content: center;
+  width: 100%;
   gap: var(--size-1);
-  margin: 0;
   padding: 0;
-  list-style: none;
   padding-bottom: 1rem;
+  margin: 0;
+  list-style: none;
+  will-change: transform;
+
+  &--animating {
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  &--slide-next {
+    .carousel__item--center .game-card {
+      transform: scale(0.92);
+    }
+
+    .carousel__item--side-right .game-card {
+      transform: scale(1.1);
+    }
+  }
+
+  &--slide-prev {
+    .carousel__item--center .game-card {
+      transform: scale(0.92);
+    }
+
+    .carousel__item--side-left .game-card {
+      transform: scale(1.1);
+    }
+  }
 }
 
-// Ratios mirror the card-size table (section 5 of the layout plan), sampled
-// per breakpoint from the Figma mockup at its 1920/768/375 reference widths.
-// Using those as flex-grow ratios (basis 0) instead of literal px widths
-// makes the cards fill the track exactly at *any* window width in between —
-// fixed px widths only fit at the exact reference width and overflowed
-// (silently clipped by .carousel__viewport's overflow: hidden) everywhere
-// else in a breakpoint's range.
 .carousel__item {
   flex-shrink: 1;
   min-width: 0;
   overflow: visible;
-}
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 
-.carousel__item--edge {
-  flex: 56 56 0;
+  &--outer-left {
+    position: absolute;
+    top: 0;
+    right: calc(100% + var(--size-1));
+    bottom: 1rem;
+    width: 120px;
 
-  @media (min-width: 481px) {
-    flex: 105 105 0;
+    @include bp.mobile-down {
+      width: 56px;
+    }
+
+    @media (min-width: 481px) and (max-width: 768px) {
+      width: 105px;
+    }
   }
 
-  @include bp.desktop-up {
-    flex: 120 120 0;
+  &--outer-right {
+    position: absolute;
+    top: 0;
+    bottom: 1rem;
+    left: calc(100% + var(--size-1));
+    width: 120px;
+
+    @include bp.mobile-down {
+      width: 56px;
+    }
+
+    @media (min-width: 481px) and (max-width: 768px) {
+      width: 105px;
+    }
   }
-}
 
-.carousel__item--center {
-  flex: 218 218 0;
+  &--edge-left,
+  &--edge-right {
+    flex: 56 56 0;
 
-  @media (min-width: 481px) {
-    flex: 448 448 0;
+    @media (min-width: 481px) {
+      flex: 105 105 0;
+    }
+
+    @include bp.desktop-up {
+      flex: 120 120 0;
+    }
   }
 
-  @include bp.desktop-up {
-    flex: 816 816 0;
+  &--center {
+    flex: 218 218 0;
+
+    @media (min-width: 481px) {
+      flex: 448 448 0;
+    }
+
+    @include bp.desktop-up {
+      flex: 816 816 0;
+    }
   }
-}
 
-// Side cards only appear in the 5-card desktop layout; tablet/mobile show
-// just edge + center + edge (see card-size table, section 5 of the plan).
-.carousel__item--side {
-  display: none;
+  &--side-left,
+  &--side-right {
+    display: none;
 
-  @include bp.desktop-up {
-    display: block;
-    flex: 288 288 0;
+    @include bp.desktop-up {
+      display: block;
+      flex: 288 288 0;
+    }
   }
 }
 
@@ -138,10 +224,31 @@
   width: 100%;
   height: 200px;
   overflow: hidden;
+  cursor: pointer;
   border: 2px solid var(--color-on-primary);
   border-radius: var(--corner-medium);
-  /* box-shadow: var(--shadow-soft-card); */
   box-shadow: var(--shadow-hard-sm);
+  transition:
+    transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 0.15s ease;
+  will-change: transform;
+
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: var(--shadow-hard-md);
+      transform: translateY(-2px);
+    }
+  }
+
+  &:active {
+    box-shadow: var(--shadow-hard-sm);
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: 2px;
+  }
 
   @media (min-width: 481px) {
     height: 280px;
@@ -157,6 +264,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
 .game-card__overlay {
@@ -169,13 +277,8 @@
   gap: var(--size-05);
   padding: var(--size-1);
   background: linear-gradient(0deg, rgb(0 0 0 / 80%) 50%, rgb(0 0 0 / 0%) 100%);
+  pointer-events: none;
 
-  // The 288px rule (RSS-QS-1-4-4): overlay only appears once the card itself
-  // is at least 288px wide, regardless of viewport — hence a container query
-  // instead of a viewport media query. Container queries measure the
-  // content box, so the card's 2px border (4px total) has to be added back
-  // to keep the threshold matching the card's actual outer 288px width.
-  // calc(288px - 4px)
   @container (min-width: 284px) {
     display: flex;
   }
@@ -186,8 +289,8 @@
   @include mix.text-truncate;
 
   margin: 0;
-  color: var(--color-white);
   font-weight: var(--weight-bold);
+  color: var(--color-white);
 }
 
 .game-card__meta {
