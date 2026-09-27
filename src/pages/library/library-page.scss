@@ -1,0 +1,14 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/tokens' as *;
+
+.library-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--size-9));
+  background-color: var(--color-bg);
+
+  &__content {
+    flex: 1 0 auto;
+    width: 100%;
+  }
+}
