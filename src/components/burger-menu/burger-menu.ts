@@ -1,3 +1,5 @@
+import { getCurrentRoute, onRouteChange } from '@/app/router';
+import type { RouteName } from '@/app/routes';
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
 import { dispatchAuthDialogOpen } from '@/shared/lib/app-events';
 import {
@@ -11,18 +13,20 @@ import { DialogMode } from '@/shared/types/ui';
 import './burger-menu.scss';
 
 const HOME_HREF = '#/home';
+const LIBRARY_HREF = '#/library';
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled])';
 
-interface NavLink {
+interface NavItemConfig {
   readonly label: string;
-  readonly isActive: boolean;
+  readonly href: string;
+  readonly route?: RouteName;
 }
 
-const NAV_LINKS: readonly NavLink[] = [
-  { label: 'Home', isActive: true },
-  { label: 'Library', isActive: false },
-  { label: 'Tournaments', isActive: false },
-  { label: 'Community', isActive: false },
+const NAV_ITEMS: readonly NavItemConfig[] = [
+  { label: 'Home', href: HOME_HREF, route: 'home' },
+  { label: 'Library', href: LIBRARY_HREF, route: 'library' },
+  { label: 'Tournaments', href: HOME_HREF },
+  { label: 'Community', href: HOME_HREF },
 ];
 
 function closeMenu(): void {
@@ -54,26 +58,6 @@ function createCloseIcon(): HTMLElement {
   });
 }
 
-function createNavLinkItem(link: NavLink): HTMLLIElement {
-  const className = link.isActive
-    ? 'burger-menu__link burger-menu__link--active'
-    : 'burger-menu__link';
-  const attributes: Record<string, string> = { href: HOME_HREF };
-
-  if (link.isActive) {
-    attributes['aria-current'] = 'page';
-  }
-
-  const anchor = createElement('a', {
-    className,
-    text: link.label,
-    attributes,
-    onClick: closeMenu,
-  });
-
-  return createElement('li', { children: [anchor] });
-}
-
 export function createBurgerMenu(): Component {
   let lastFocusedElement: HTMLElement | undefined;
 
@@ -102,10 +86,42 @@ export function createBurgerMenu(): Component {
     children: [logo, closeButton],
   });
 
+  const navLinks: { anchor: HTMLAnchorElement; route?: RouteName | undefined }[] = [];
+
   const links = createElement('ul', {
     className: 'burger-menu__links',
-    children: NAV_LINKS.map((link) => createNavLinkItem(link)),
+    children: NAV_ITEMS.map((item) => {
+      const isInitialActive = item.route === getCurrentRoute();
+      const anchor = createElement('a', {
+        className: isInitialActive
+          ? 'burger-menu__link burger-menu__link--active'
+          : 'burger-menu__link',
+        text: item.label,
+        attributes: {
+          href: item.href,
+          ...(isInitialActive && { 'aria-current': 'page' }),
+        },
+        onClick: closeMenu,
+      });
+
+      navLinks.push({ anchor, route: item.route });
+
+      return createElement('li', { children: [anchor] });
+    }),
   });
+
+  function updateActive(currentRoute: RouteName): void {
+    for (const { anchor, route } of navLinks) {
+      const isActive = route === currentRoute;
+      anchor.classList.toggle('burger-menu__link--active', isActive);
+
+      if (isActive) {
+        anchor.setAttribute('aria-current', 'page');
+      } else if (anchor.hasAttribute('aria-current')) {
+        anchor.removeAttribute('aria-current');
+      }
+    }
+  }
 
   const nav = createElement('nav', {
     className: 'burger-menu__nav',
@@ -205,12 +221,16 @@ export function createBurgerMenu(): Component {
     lastFocusedElement?.focus();
   }
 
-  const unsubscribe = onBurgerMenuChange((isOpen) => {
+  const unsubscribeBurger = onBurgerMenuChange((isOpen) => {
     if (isOpen) {
       open();
     } else {
       close();
     }
+  });
+
+  const unsubscribeRoute = onRouteChange((route) => {
+    updateActive(route);
   });
 
   if (isBurgerMenuOpen()) {
@@ -220,7 +240,8 @@ export function createBurgerMenu(): Component {
   return {
     element,
     destroy: (): void => {
-      unsubscribe();
+      unsubscribeBurger();
+      unsubscribeRoute();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
     },
