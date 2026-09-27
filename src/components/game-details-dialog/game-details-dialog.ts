@@ -1,7 +1,11 @@
+import { tukoniGameDetails } from '@/data/game-tukoni';
 import { onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
+import { createGameDetailsHero } from './game-details-hero';
+import { createGameDetailsInfo } from './game-details-info';
+import { createGameDetailsRecords } from './game-details-records';
 import './game-details-dialog.scss';
 
 const FOCUSABLE_SELECTOR =
@@ -41,24 +45,18 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     },
   });
 
-  const placeholder = createElement('div', {
-    className: 'game-details-dialog__placeholder',
-    children: [
-      createElement('h2', {
-        className: 'game-details-dialog__title',
-        text: 'Tukoni: Forest Keepers',
-      }),
-    ],
-  });
+  const hero = createGameDetailsHero({ title: tukoniGameDetails.name });
+  const info = createGameDetailsInfo(tukoniGameDetails);
+  const records = createGameDetailsRecords(tukoniGameDetails.topRecords);
 
-  const content = createElement('div', {
-    className: 'game-details-dialog__content',
-    children: [placeholder],
+  const body = createElement('div', {
+    className: 'game-details-dialog__body',
+    children: [info.element, records],
   });
 
   const panel = createElement('div', {
     className: 'game-details-dialog__panel',
-    children: [closeButton, content],
+    children: [closeButton, hero, body],
   });
 
   const dialog = createElement('dialog', {
@@ -125,6 +123,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   dialog.addEventListener('close', () => {
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
+    info.resetFavorite();
     lastFocusedElement?.focus();
   });
 
