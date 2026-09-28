@@ -1,28 +1,29 @@
-import heartopiaCard from '@/assets/images/games/heartopia-card.jpg';
-import paliaCard from '@/assets/images/games/palia-card.jpg';
-import shelveThePotionsCard from '@/assets/images/games/shelve-the-potions-card.jpg';
-import vacationCafeSimulatorCard from '@/assets/images/games/vacation-cafe-simulator-card.jpg';
-import winterBurrowCard from '@/assets/images/games/winter-burrow-card.jpg';
-import { formatCompactNumber } from '@/shared/lib/format';
 import { createElement } from '@/shared/lib/dom';
+import { formatCompactNumber } from '@/shared/lib/format';
 import type { Game } from '@/shared/types/game';
 import { createHeartIcon, createStarIcon } from '@/shared/ui/icon/icon';
 
-const GAME_CARD_IMAGES: Readonly<Record<string, string>> = {
-  'vacation-cafe-simulator': vacationCafeSimulatorCard,
-  'winter-burrow': winterBurrowCard,
-  'shelve-the-potions': shelveThePotionsCard,
-  heartopia: heartopiaCard,
-  palia: paliaCard,
-};
+const cardImageModules = import.meta.glob<string>('/src/assets/images/games/*-card.jpg', {
+  eager: true,
+  import: 'default',
+});
 
-export type CardPosition = 'edge' | 'side' | 'center';
+function getCardImageUrl(slug: string): string {
+  const path = `/src/assets/images/games/${slug}-card.jpg`;
+  return cardImageModules[path] ?? '';
+}
 
-export function createGameCard(game: Game, position: CardPosition): HTMLElement {
+export type CardPosition = 'edge' | 'side' | 'center' | 'outer';
+
+export function createGameCard(
+  game: Game,
+  position: CardPosition,
+  onClick?: () => void,
+): HTMLElement {
   const image = createElement('img', {
     className: 'game-card__image',
     attributes: {
-      src: GAME_CARD_IMAGES[game.slug] ?? '',
+      src: getCardImageUrl(game.slug),
       alt: game.name,
       loading: 'lazy',
     },
@@ -50,8 +51,26 @@ export function createGameCard(game: Game, position: CardPosition): HTMLElement 
     children: [title, meta],
   });
 
-  return createElement('article', {
+  const card = createElement('article', {
     className: `game-card game-card--${position}`,
+    attributes: {
+      tabindex: '0',
+      role: 'button',
+      'aria-label': `${game.name} - Open game details`,
+    },
     children: [image, overlay],
+    onClick: () => {
+      onClick?.();
+    },
   });
+
+  card.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    onClick?.();
+  });
+
+  return card;
 }

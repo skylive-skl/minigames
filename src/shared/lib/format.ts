@@ -21,3 +21,33 @@ export function formatStreakDays(days: number): string {
 export function formatStreakDaysCompact(days: number): string {
   return `${String(days)}d`;
 }
+
+const RELATIVE_TIME_UNITS: readonly (readonly [Intl.RelativeTimeFormatUnit, number])[] = [
+  ['year', 365 * 24 * 60 * 60],
+  ['month', 30 * 24 * 60 * 60],
+  ['week', 7 * 24 * 60 * 60],
+  ['day', 24 * 60 * 60],
+  ['hour', 60 * 60],
+  ['minute', 60],
+];
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat('en-US', { numeric: 'always' });
+
+// "3 hours ago", "1 week ago" — matches the Game Details mockup labels.
+export function formatRelativeTime(isoString: string, now: Date = new Date()): string {
+  const timestamp = new Date(isoString).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return isoString;
+  }
+
+  const elapsedSeconds = Math.max(0, Math.round((now.getTime() - timestamp) / 1000));
+
+  for (const [unit, unitSeconds] of RELATIVE_TIME_UNITS) {
+    if (elapsedSeconds >= unitSeconds) {
+      return relativeTimeFormatter.format(-Math.floor(elapsedSeconds / unitSeconds), unit);
+    }
+  }
+
+  return 'just now';
+}

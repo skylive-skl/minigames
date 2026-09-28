@@ -1,0 +1,252 @@
+@use '@/styles/breakpoints' as bp;
+@use '@/styles/mixins' as mix;
+@use '@/styles/typography' as type;
+
+.library-filter {
+  @include mix.container;
+
+  padding-top: var(--size-2);
+
+  @media (min-width: 481px) {
+    padding-top: var(--size-3);
+  }
+
+  @include bp.desktop-up {
+    padding-top: var(--size-5);
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1);
+    padding-bottom: var(--size-2);
+
+    @media (min-width: 481px) {
+      padding-bottom: var(--size-3);
+    }
+
+    @include bp.desktop-up {
+      padding-bottom: var(--size-5);
+    }
+  }
+
+  &__heading {
+    @include type.display-small;
+
+    margin: 0;
+    color: var(--color-on-primary);
+    line-height: 1.2;
+
+    @media (min-width: 481px) {
+      @include type.display-medium;
+
+      line-height: 1.2;
+    }
+
+    @include bp.desktop-up {
+      @include type.display-large;
+
+      line-height: 1.2;
+    }
+  }
+
+  &__subtitle {
+    @include type.body-small;
+
+    margin: 0;
+    color: var(--color-on-bg);
+    line-height: 1.2;
+
+    @media (min-width: 481px) {
+      @include type.body-medium;
+
+      line-height: 1.2;
+    }
+
+    @include bp.desktop-up {
+      @include type.body-large;
+
+      line-height: 1.2;
+    }
+  }
+
+  &__toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--size-2);
+    padding-block: var(--size-2);
+
+    @media (min-width: 481px) {
+      align-items: flex-start;
+    }
+
+    @include bp.desktop-up {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--size-3);
+    }
+  }
+
+  &__chips-container {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: var(--size-1);
+    overflow-x: auto;
+    white-space: nowrap;
+    user-select: none;
+    cursor: grab;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    @include bp.desktop-up {
+      flex: 1 1 auto;
+      gap: var(--size-2);
+    }
+  }
+
+  &__chip {
+    @include mix.button-reset;
+    @include type.label-medium;
+
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    // Figma chip height (33px) includes the 2px border.
+    padding: calc(var(--btn-small-y) - 2px) calc(var(--btn-small-x) - 2px);
+    font-family: var(--font-main);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    color: var(--color-on-primary);
+    background-color: var(--color-white);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    @media (min-width: 481px) {
+      font-size: var(--label-large);
+    }
+
+    @include bp.hover {
+      &:not(.library-filter__chip--active) {
+        background-color: var(--color-secondary);
+      }
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 2px;
+    }
+
+    &--active {
+      background-color: var(--color-primary);
+    }
+  }
+
+  &__sort {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__sort-btn {
+    @include mix.button-reset;
+    @include type.label-medium;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-1);
+    width: 100%;
+    height: var(--size-5);
+    padding: var(--btn-small-y) var(--btn-small-x);
+    font-family: var(--font-main);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    color: var(--color-on-primary);
+    background-color: var(--color-white);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition: background-color 0.15s ease;
+
+    @media (min-width: 481px) {
+      width: auto;
+      font-size: var(--label-large);
+    }
+
+    @include bp.desktop-up {
+      width: var(--size-sort-menu);
+      height: calc(var(--size-5) + var(--size-05));
+      padding-inline: var(--btn-medium-x);
+    }
+
+    @include bp.hover {
+      background-color: var(--color-secondary);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 2px;
+    }
+  }
+
+  &__sort-menu {
+    position: absolute;
+    top: calc(100% + var(--size-05));
+    right: 0;
+    z-index: 20;
+    left: 0;
+    padding: var(--size-1) 0;
+    margin: 0;
+    list-style: none;
+    background-color: var(--color-white);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-large);
+    box-shadow: var(--shadow-hard-sm);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__sort-option {
+    padding: var(--size-1) var(--size-2);
+    font-family: var(--font-main);
+    font-size: var(--label-large);
+    font-weight: var(--weight-medium);
+    color: var(--color-on-primary);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-secondary);
+      }
+    }
+
+    &--active {
+      font-weight: var(--weight-bold);
+      color: var(--color-on-primary);
+      background-color: var(--color-primary);
+    }
+  }
+}

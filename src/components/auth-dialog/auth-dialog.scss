@@ -37,7 +37,7 @@
   }
 
   &::backdrop {
-    background-color: rgb(36 33 69 / 0%);
+    background-color: transparent;
     transition:
       background-color 0.2s ease,
       overlay 0.2s ease allow-discrete,
@@ -45,12 +45,12 @@
   }
 
   &[open]::backdrop {
-    background-color: rgb(36 33 69 / 60%);
+    background-color: var(--color-backdrop);
   }
 
   @starting-style {
     &[open]::backdrop {
-      background-color: rgb(36 33 69 / 0%);
+      background-color: transparent;
     }
   }
 

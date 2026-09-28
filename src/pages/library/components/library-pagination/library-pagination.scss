@@ -1,0 +1,122 @@
+@use '@/styles/breakpoints' as bp;
+@use '@/styles/mixins' as mix;
+
+.library-pagination {
+  @include mix.container;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
+  padding-block: var(--size-3);
+
+  @media (min-width: 481px) {
+    padding-block: var(--size-5);
+  }
+
+  @include bp.desktop-up {
+    gap: var(--size-2);
+  }
+
+  &__list {
+    display: flex;
+    align-items: center;
+    gap: var(--size-1);
+
+    @include bp.desktop-up {
+      gap: var(--size-2);
+    }
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+  }
+
+  &__page {
+    @include mix.button-reset;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-5);
+    height: var(--size-5);
+    font-family: var(--font-main);
+    font-size: var(--label-large);
+    font-weight: var(--weight-bold);
+    color: var(--color-on-primary);
+    background-color: var(--color-white);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition: all 0.15s ease;
+
+    @media (hover: hover) {
+      &:hover:not(.library-pagination__page--active) {
+        background-color: var(--color-secondary);
+      }
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 2px;
+    }
+
+    &--active {
+      color: var(--color-white);
+      background-color: var(--color-on-primary);
+      border-color: var(--color-on-primary);
+      cursor: default;
+    }
+  }
+
+  &__arrow {
+    @include mix.button-reset;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-5);
+    height: var(--size-5);
+    color: var(--color-on-primary);
+    background-color: var(--color-white);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition: all 0.15s ease;
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        background-color: var(--color-secondary);
+      }
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-tertiary);
+      outline-offset: 2px;
+    }
+
+    &--disabled,
+    &:disabled {
+      color: var(--color-text-placeholder);
+      cursor: not-allowed;
+      background-color: transparent;
+      border-color: var(--color-outline);
+      pointer-events: none;
+    }
+  }
+
+  &__arrow-icon {
+    width: var(--size-3);
+    height: var(--size-3);
+  }
+}
