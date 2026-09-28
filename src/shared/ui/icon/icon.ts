@@ -23,17 +23,35 @@ function buildIcon(
   return svg;
 }
 
-export function createStarIcon(): SVGElement {
+export type IconVariant = 'filled' | 'outline';
+
+function getVariantAttributes(variant: IconVariant): Readonly<Record<string, string>> {
+  return variant === 'filled'
+    ? { fill: 'currentColor' }
+    : { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' };
+}
+
+export function createStarIcon(variant: IconVariant = 'filled'): SVGElement {
   return buildIcon(
-    { fill: 'currentColor' },
+    getVariantAttributes(variant),
     'M10 1.5l2.53 5.32 5.72.55-4.3 4 1.19 5.7-5.14-2.99-5.14 2.99 1.19-5.7-4.3-4 5.72-.55z',
+    { 'stroke-linejoin': 'round' },
   );
 }
 
-export function createHeartIcon(): SVGElement {
+export function createHeartIcon(variant: IconVariant = 'filled'): SVGElement {
   return buildIcon(
-    { fill: 'currentColor' },
+    getVariantAttributes(variant),
     'M10 17.3s-6.2-3.85-8.6-7.72C-0.2 6.1 2.1 2.8 5.4 2.8c1.9 0 3.4 1.1 4.6 2.6 1.2-1.5 2.7-2.6 4.6-2.6 3.3 0 5.6 3.3 4 6.78-2.4 3.87-8.6 7.72-8.6 7.72z',
+    { 'stroke-linejoin': 'round' },
+  );
+}
+
+export function createSendIcon(): SVGElement {
+  return buildIcon(
+    { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' },
+    'M3 3.5l14 6.5-14 6.5 2.5-6.5zM5.5 10H11',
+    { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
   );
 }
 
@@ -54,17 +72,6 @@ export function createArrowIcon(direction: ArrowDirection): SVGElement {
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round',
   });
-}
-
-export function createChevronDownIcon(): SVGElement {
-  return buildIcon(
-    { fill: 'none', stroke: 'currentColor', 'stroke-width': '2' },
-    'M5 7.5l5 5 5-5',
-    {
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round',
-    },
-  );
 }
 
 export function createChevronLeftIcon(): SVGElement {

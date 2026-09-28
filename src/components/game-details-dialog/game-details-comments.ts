@@ -13,7 +13,7 @@ export function createGameDetailsComments(
   comments: readonly GameComment[] = tukoniComments,
 ): GameDetailsCommentsController {
   const heading = createElement('h3', {
-    className: 'game-details-dialog__comments-title',
+    className: 'game-details-dialog__section-title',
     attributes: {
       id: 'game-details-comments-heading',
     },

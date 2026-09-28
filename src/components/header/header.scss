@@ -16,19 +16,18 @@
   align-items: center;
   justify-content: space-between;
   max-width: bp.$container-max;
-  height: var(--size-8);
+  // Figma header heights (64/72/85px) include the 2px bottom border.
+  height: calc(var(--size-8) - 2px);
   margin-inline: auto;
   padding-inline: var(--size-2);
 
   @media (min-width: 481px) {
-    height: var(--size-9);
+    height: calc(var(--size-9) - 2px);
     padding-inline: var(--size-5);
   }
 
   @include bp.desktop-up {
-    // 85px desktop header height sits between size-10 (80px) and size-11 (88px)
-    // on the token scale; confirmed via Figma metadata (node 1:14, height 85).
-    height: calc(var(--size-10) + 5px);
+    height: calc(var(--size-header-desktop) - 2px);
     padding-inline: var(--size-10);
   }
 }
@@ -52,9 +51,14 @@
 }
 
 .header__logo-text {
-  @include type.display-small;
+  @include type.headline-small;
 
   color: var(--color-on-primary);
+  font-weight: var(--weight-bold);
+
+  @include bp.desktop-up {
+    @include type.display-small;
+  }
 }
 
 .header__nav {
@@ -62,6 +66,7 @@
 
   @include bp.desktop-up {
     display: block;
+    margin-inline: auto var(--size-4);
   }
 }
 
@@ -72,7 +77,7 @@
 }
 
 .header__nav-link {
-  @include type.label-large;
+  @include type.body-medium;
   @include mix.focus-ring;
 
   color: var(--color-on-bg);
@@ -96,14 +101,20 @@
 .header__button {
   @include mix.button-reset;
   @include mix.focus-ring;
-  @include type.label-large;
+  @include type.body-small;
 
   display: none;
   align-items: center;
   justify-content: center;
-  padding: var(--btn-medium-y) var(--btn-medium-x);
+  // Figma button sizes include the 2px border.
+  padding: calc(var(--btn-small-y) - 2px) calc(var(--btn-small-x) - 2px);
   border: 2px solid var(--color-on-primary);
-  border-radius: var(--corner-extra-small);
+  border-radius: var(--corner-small);
+  line-height: 1.2;
+
+  @include bp.desktop-up {
+    padding: calc(var(--btn-medium-y) - 2px) calc(var(--btn-medium-x) - 2px);
+  }
   font-weight: var(--weight-bold);
 
   &:active {
@@ -112,7 +123,7 @@
 }
 
 .header__button--outline {
-  background-color: var(--color-white);
+  background-color: var(--color-bg);
   color: var(--color-on-primary);
 
   @include bp.hover {

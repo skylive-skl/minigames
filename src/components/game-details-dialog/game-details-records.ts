@@ -1,107 +1,74 @@
 import { createElement } from '@/shared/lib/dom';
-import { formatThousands } from '@/shared/lib/format';
+import { formatRelativeTime, formatThousands } from '@/shared/lib/format';
 import type { TopRecord } from '@/shared/types/game';
 
-function formatRecordDate(isoString: string): string {
-  const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) {
-    return isoString;
-  }
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+const MEDALS: Readonly<Record<number, string>> = {
+  1: '\u{1F947}',
+  2: '\u{1F948}',
+  3: '\u{1F949}',
+};
+
+function createRecordItem(record: TopRecord): HTMLLIElement {
+  const medal = createElement('span', {
+    className: 'game-details-dialog__record-medal',
+    attributes: { 'aria-hidden': 'true' },
+    text: MEDALS[record.position] ?? `#${String(record.position)}`,
+  });
+
+  const rank = createElement('span', {
+    className: 'game-details-dialog__visually-hidden',
+    text: `Rank ${String(record.position)}: `,
+  });
+
+  const player = createElement('span', {
+    className: 'game-details-dialog__record-player',
+    children: [medal, rank, document.createTextNode(record.playerName)],
+  });
+
+  const score = createElement('span', {
+    className: 'game-details-dialog__record-score',
+    text: `${formatThousands(record.score)} pts`,
+  });
+
+  const date = createElement('time', {
+    className: 'game-details-dialog__record-date',
+    attributes: { datetime: record.achievedAt },
+    text: formatRelativeTime(record.achievedAt),
+  });
+
+  const result = createElement('span', {
+    className: 'game-details-dialog__record-result',
+    children: [score, date],
+  });
+
+  return createElement('li', {
+    className: 'game-details-dialog__record',
+    children: [player, result],
   });
 }
 
 export function createGameDetailsRecords(records: readonly TopRecord[]): HTMLElement {
+  const trophy = createElement('span', {
+    attributes: { 'aria-hidden': 'true' },
+    text: '\u{1F3C6}',
+  });
+
   const heading = createElement('h3', {
-    className: 'game-details-dialog__records-title',
+    className: 'game-details-dialog__section-title',
     attributes: {
       id: 'game-details-records-heading',
     },
-    text: 'Top Records',
+    children: [trophy, document.createTextNode('Top Records')],
   });
 
-  const tableHeader = createElement('thead', {
-    children: [
-      createElement('tr', {
-        className: 'game-details-dialog__records-header-row',
-        children: [
-          createElement('th', {
-            className: 'game-details-dialog__records-th game-details-dialog__records-th--rank',
-            text: 'Rank',
-            attributes: { scope: 'col' },
-          }),
-          createElement('th', {
-            className: 'game-details-dialog__records-th game-details-dialog__records-th--player',
-            text: 'Player',
-            attributes: { scope: 'col' },
-          }),
-          createElement('th', {
-            className: 'game-details-dialog__records-th game-details-dialog__records-th--score',
-            text: 'Score',
-            attributes: { scope: 'col' },
-          }),
-          createElement('th', {
-            className: 'game-details-dialog__records-th game-details-dialog__records-th--date',
-            text: 'Date',
-            attributes: { scope: 'col' },
-          }),
-        ],
-      }),
-    ],
-  });
-
-  const rows = records.map((record) => {
-    const rankBadge = createElement('span', {
-      className: `game-details-dialog__rank-badge game-details-dialog__rank-badge--${String(record.position)}`,
-      text: `#${String(record.position)}`,
-    });
-
-    const rankCell = createElement('td', {
-      className: 'game-details-dialog__records-td game-details-dialog__records-td--rank',
-      children: [rankBadge],
-    });
-
-    const playerCell = createElement('td', {
-      className: 'game-details-dialog__records-td game-details-dialog__records-td--player',
-      text: record.playerName,
-    });
-
-    const scoreCell = createElement('td', {
-      className: 'game-details-dialog__records-td game-details-dialog__records-td--score',
-      text: `${formatThousands(record.score)} pts`,
-    });
-
-    const dateCell = createElement('td', {
-      className: 'game-details-dialog__records-td game-details-dialog__records-td--date',
-      children: [
-        createElement('time', {
-          attributes: { datetime: record.achievedAt },
-          text: formatRecordDate(record.achievedAt),
-        }),
-      ],
-    });
-
-    return createElement('tr', {
-      className: 'game-details-dialog__records-row',
-      children: [rankCell, playerCell, scoreCell, dateCell],
-    });
-  });
-
-  const tableBody = createElement('tbody', {
-    children: rows,
-  });
-
-  const table = createElement('table', {
-    className: 'game-details-dialog__records-table',
-    children: [tableHeader, tableBody],
+  const list = createElement('ol', {
+    className: 'game-details-dialog__records-list',
+    children: records.map((record) => createRecordItem(record)),
   });
 
   return createElement('section', {
     className: 'game-details-dialog__records',
     attributes: { 'aria-labelledby': 'game-details-records-heading' },
-    children: [heading, table],
+    children: [heading, list],
   });
 }

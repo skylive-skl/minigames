@@ -2,7 +2,6 @@ import { categories } from '@/data/categories';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { CategorySlug } from '@/shared/types/game';
-import { createChevronDownIcon } from '@/shared/ui/icon/icon';
 import './library-filter.scss';
 
 export interface SortOption {
@@ -11,8 +10,8 @@ export interface SortOption {
 }
 
 export const SORT_OPTIONS: readonly SortOption[] = [
-  { id: 'popular', label: 'Popular' },
   { id: 'rating', label: 'Rating' },
+  { id: 'popular', label: 'Popular' },
   { id: 'newest', label: 'Newest' },
 ];
 
@@ -78,12 +77,12 @@ function enableDragScroll(container: HTMLElement): () => void {
 }
 
 function getSortDisplayText(label: string): string {
-  return `Sort by: ${label}`;
+  return `Sort by: ${label} ↓`;
 }
 
 export function createLibraryFilter(): Component {
   let activeCategory: CategorySlug = 'all';
-  let activeSortId = SORT_OPTIONS[0]?.id ?? 'popular';
+  let activeSortId = SORT_OPTIONS[0]?.id ?? 'rating';
   let isSortOpen = false;
 
   const heading = createElement('h1', {
@@ -150,11 +149,8 @@ export function createLibraryFilter(): Component {
 
   const sortLabel = createElement('span', {
     className: 'library-filter__sort-label',
-    text: getSortDisplayText(SORT_OPTIONS[0]?.label ?? 'Popular'),
+    text: getSortDisplayText(SORT_OPTIONS[0]?.label ?? 'Rating'),
   });
-
-  const sortIcon = createChevronDownIcon();
-  sortIcon.classList.add('library-filter__sort-icon');
 
   const sortButton = createElement('button', {
     className: 'library-filter__sort-btn',
@@ -164,7 +160,7 @@ export function createLibraryFilter(): Component {
       'aria-expanded': 'false',
       'aria-label': 'Sort games',
     },
-    children: [sortLabel, sortIcon],
+    children: [sortLabel],
   });
 
   const sortOptionItems: { item: HTMLLIElement; option: SortOption }[] = [];

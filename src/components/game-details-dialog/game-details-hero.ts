@@ -3,6 +3,7 @@ import { createElement } from '@/shared/lib/dom';
 
 export interface GameDetailsHeroOptions {
   readonly title: string;
+  readonly closeButton: HTMLButtonElement;
 }
 
 export function createGameDetailsHero(options: GameDetailsHeroOptions): HTMLElement {
@@ -12,13 +13,13 @@ export function createGameDetailsHero(options: GameDetailsHeroOptions): HTMLElem
       src: tukoniHeroImageUrl,
       alt: options.title,
       width: '600',
-      height: '240',
+      height: '220',
       loading: 'eager',
     },
   });
 
   return createElement('header', {
     className: 'game-details-dialog__hero',
-    children: [image],
+    children: [image, options.closeButton],
   });
 }

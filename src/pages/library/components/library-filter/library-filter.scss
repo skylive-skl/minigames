@@ -5,8 +5,11 @@
 .library-filter {
   @include mix.container;
 
-  padding-top: var(--size-4);
-  padding-bottom: var(--size-3);
+  padding-top: var(--size-2);
+
+  @media (min-width: 481px) {
+    padding-top: var(--size-3);
+  }
 
   @include bp.desktop-up {
     padding-top: var(--size-5);
@@ -15,18 +18,35 @@
   &__header {
     display: flex;
     flex-direction: column;
-    gap: var(--size-05);
-    margin-bottom: var(--size-3);
+    gap: var(--size-1);
+    padding-bottom: var(--size-2);
+
+    @media (min-width: 481px) {
+      padding-bottom: var(--size-3);
+    }
+
+    @include bp.desktop-up {
+      padding-bottom: var(--size-5);
+    }
   }
 
   &__heading {
-    @include type.headline-medium;
+    @include type.display-small;
 
     margin: 0;
     color: var(--color-on-primary);
+    line-height: 1.2;
+
+    @media (min-width: 481px) {
+      @include type.display-medium;
+
+      line-height: 1.2;
+    }
 
     @include bp.desktop-up {
-      @include type.headline-large;
+      @include type.display-large;
+
+      line-height: 1.2;
     }
   }
 
@@ -35,19 +55,33 @@
 
     margin: 0;
     color: var(--color-on-bg);
+    line-height: 1.2;
+
+    @media (min-width: 481px) {
+      @include type.body-medium;
+
+      line-height: 1.2;
+    }
 
     @include bp.desktop-up {
-      @include type.body-medium;
+      @include type.body-large;
+
+      line-height: 1.2;
     }
   }
 
   &__toolbar {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: var(--size-2);
+    padding-block: var(--size-2);
 
-    @media (min-width: 1024px) {
+    @media (min-width: 481px) {
+      align-items: flex-start;
+    }
+
+    @include bp.desktop-up {
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
@@ -74,33 +108,40 @@
       height: 0;
     }
 
-    @media (min-width: 1024px) {
+    @include bp.desktop-up {
       flex: 1 1 auto;
+      gap: var(--size-2);
     }
   }
 
   &__chip {
     @include mix.button-reset;
+    @include type.label-medium;
 
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    padding: var(--size-1) var(--size-2);
+    // Figma chip height (33px) includes the 2px border.
+    padding: calc(var(--btn-small-y) - 2px) calc(var(--btn-small-x) - 2px);
     font-family: var(--font-main);
-    font-size: var(--label-large);
-    font-weight: var(--weight-medium);
-    line-height: 1;
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
     color: var(--color-on-primary);
     background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
+    border: 2px solid var(--color-on-primary);
     border-radius: var(--corner-full);
-    transition: all 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
 
-    @media (hover: hover) {
-      &:hover:not(.library-filter__chip--active) {
-        background-color: var(--color-surface);
-        box-shadow: var(--shadow-hard-sm);
+    @media (min-width: 481px) {
+      font-size: var(--label-large);
+    }
+
+    @include bp.hover {
+      &:not(.library-filter__chip--active) {
+        background-color: var(--color-secondary);
       }
     }
 
@@ -114,11 +155,7 @@
     }
 
     &--active {
-      font-weight: var(--weight-bold);
-      color: var(--color-on-primary);
       background-color: var(--color-primary);
-      border-color: var(--color-on-primary);
-      box-shadow: var(--shadow-hard-sm);
     }
   }
 
@@ -129,25 +166,37 @@
 
   &__sort-btn {
     @include mix.button-reset;
+    @include type.label-medium;
 
     display: inline-flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--size-1);
-    padding: var(--size-1) var(--size-2);
+    width: 100%;
+    height: var(--size-5);
+    padding: var(--btn-small-y) var(--btn-small-x);
     font-family: var(--font-main);
-    font-size: var(--label-large);
-    font-weight: var(--weight-medium);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
     color: var(--color-on-primary);
     background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
-    border-radius: var(--corner-small);
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.15s ease;
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-full);
+    transition: background-color 0.15s ease;
 
-    @media (hover: hover) {
-      &:hover {
-        background-color: var(--color-surface);
-      }
+    @media (min-width: 481px) {
+      width: auto;
+      font-size: var(--label-large);
+    }
+
+    @include bp.desktop-up {
+      width: var(--size-sort-menu);
+      height: calc(var(--size-5) + var(--size-05));
+      padding-inline: var(--btn-medium-x);
+    }
+
+    @include bp.hover {
+      background-color: var(--color-secondary);
     }
 
     &:active {
@@ -160,29 +209,19 @@
     }
   }
 
-  &__sort-icon {
-    width: var(--size-2);
-    height: var(--size-2);
-    transition: transform 0.2s ease;
-
-    .library-filter__sort-btn[aria-expanded='true'] & {
-      transform: rotate(180deg);
-    }
-  }
-
   &__sort-menu {
     position: absolute;
     top: calc(100% + var(--size-05));
     right: 0;
     z-index: 20;
-    min-width: 140px;
-    padding: var(--size-05) 0;
+    left: 0;
+    padding: var(--size-1) 0;
     margin: 0;
     list-style: none;
     background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
-    border-radius: var(--corner-small);
-    box-shadow: var(--shadow-hard-md);
+    border: 2px solid var(--color-on-primary);
+    border-radius: var(--corner-large);
+    box-shadow: var(--shadow-hard-sm);
 
     &[hidden] {
       display: none;
@@ -193,21 +232,21 @@
     padding: var(--size-1) var(--size-2);
     font-family: var(--font-main);
     font-size: var(--label-large);
-    font-weight: var(--weight-regular);
+    font-weight: var(--weight-medium);
     color: var(--color-on-primary);
     cursor: pointer;
     transition: background-color 0.15s ease;
 
     @media (hover: hover) {
       &:hover {
-        background-color: var(--color-surface);
+        background-color: var(--color-secondary);
       }
     }
 
     &--active {
       font-weight: var(--weight-bold);
       color: var(--color-on-primary);
-      background-color: var(--color-surface-low);
+      background-color: var(--color-primary);
     }
   }
 }

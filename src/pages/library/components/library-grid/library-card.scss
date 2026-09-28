@@ -2,44 +2,49 @@
 @use '@/styles/mixins' as mix;
 @use '@/styles/typography' as type;
 
+// Figma: Game Card — desktop 2:650 (200px tall, 320px cover),
+// tablet 2:858 (152px tall, 270px cover), mobile 2:1056 (stacked, 160px cover).
 .library-card {
   display: flex;
   flex-direction: column;
   width: 100%;
   overflow: hidden;
   background-color: var(--color-white);
-  border: 1px solid var(--color-on-primary);
+  border: 2px solid var(--color-on-primary);
   border-radius: var(--corner-large);
-  box-shadow: var(--shadow-hard-md);
+  box-shadow: var(--shadow-hard-sm);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 
-  @media (min-width: 640px) {
+  @media (min-width: 481px) {
     flex-direction: row;
-    height: 196px;
+    height: var(--size-card-height-compact);
   }
 
-  @media (hover: hover) {
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-hard-lg);
-    }
+  @include bp.desktop-up {
+    height: var(--size-card-height);
+  }
+
+  @include bp.hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hard-md);
   }
 
   &__media {
-    position: relative;
+    flex-shrink: 0;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    height: var(--size-card-media-stacked);
     overflow: hidden;
     background-color: var(--color-surface);
-    flex-shrink: 0;
 
-    @media (min-width: 640px) {
-      width: 38%;
-      max-width: 220px;
+    @media (min-width: 481px) {
+      width: min(var(--size-card-media-compact), 40%);
       height: 100%;
-      aspect-ratio: auto;
+    }
+
+    @include bp.desktop-up {
+      width: min(var(--size-card-media), 40%);
     }
   }
 
@@ -50,7 +55,7 @@
     object-fit: cover;
     transition: transform 0.3s ease;
 
-    @media (hover: hover) {
+    @media (hover: hover) and (pointer: fine) {
       .library-card:hover & {
         transform: scale(1.03);
       }
@@ -61,20 +66,15 @@
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    justify-content: space-between;
     min-width: 0;
     padding: var(--size-2);
-
-    @media (min-width: 640px) {
-      padding: var(--size-2) var(--size-3);
-    }
   }
 
   &__header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: var(--size-1);
+    gap: var(--size-2);
     min-width: 0;
   }
 
@@ -82,14 +82,13 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--size-05);
+    gap: var(--size-1);
     min-width: 0;
 
-    @media (min-width: 640px) {
+    @media (min-width: 481px) {
       flex-direction: row;
       align-items: center;
-      gap: var(--size-1);
-      flex-wrap: wrap;
+      gap: var(--size-2);
     }
   }
 
@@ -97,32 +96,47 @@
     @include type.headline-small;
     @include mix.text-truncate;
 
+    max-width: 100%;
     margin: 0;
-    font-size: var(--body-large);
     font-weight: var(--weight-bold);
+    line-height: 1.2;
     color: var(--color-on-primary);
+
+    @include bp.desktop-up {
+      font-size: var(--headline-medium);
+    }
   }
 
   &__category {
+    @include type.label-medium;
+
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
-    padding: var(--size-05) var(--size-1);
+    padding: calc(var(--size-05) / 2) var(--size-1);
     font-family: var(--font-main);
-    font-size: var(--label-small);
     font-weight: var(--weight-bold);
-    line-height: 1;
+    line-height: 1.2;
     color: var(--color-on-primary);
-    background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
+    background-color: var(--color-secondary);
+    border: 1.5px solid var(--color-on-primary);
     border-radius: var(--corner-full);
+
+    @media (min-width: 481px) {
+      padding-block: var(--size-05);
+    }
   }
 
   &__price {
-    font-family: var(--font-main);
-    font-size: var(--body-medium);
-    font-weight: var(--weight-bold);
-    line-height: 1;
+    @include type.headline-small;
+
     flex-shrink: 0;
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+
+    @include bp.desktop-up {
+      font-size: var(--headline-medium);
+    }
 
     &--free {
       color: var(--color-price-free);
@@ -135,7 +149,7 @@
     &--desktop {
       display: none;
 
-      @media (min-width: 640px) {
+      @media (min-width: 481px) {
         display: inline-block;
       }
     }
@@ -143,7 +157,7 @@
     &--mobile {
       display: inline-block;
 
-      @media (min-width: 640px) {
+      @media (min-width: 481px) {
         display: none;
       }
     }
@@ -153,16 +167,23 @@
     @include type.body-small;
 
     display: -webkit-box;
-    margin: var(--size-1) 0 0;
+    margin: var(--size-2) 0 0;
     overflow: hidden;
     line-height: 1.4;
     color: var(--color-on-bg);
-    text-overflow: ellipsis;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 
-    @media (min-width: 640px) {
-      margin: var(--size-05) 0;
+    @media (min-width: 481px) {
+      margin-top: var(--size-1);
+    }
+
+    @include bp.desktop-up {
+      @include type.body-medium;
+
+      margin-top: var(--size-2);
+      line-height: 1.4;
+      -webkit-line-clamp: 3;
     }
   }
 
@@ -170,13 +191,12 @@
     display: flex;
     flex-direction: column;
     gap: var(--size-2);
-    margin-top: var(--size-1);
+    margin-top: var(--size-2);
 
-    @media (min-width: 640px) {
+    @media (min-width: 481px) {
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
-      gap: var(--size-2);
       margin-top: auto;
     }
   }
@@ -187,9 +207,8 @@
     justify-content: space-between;
     width: 100%;
 
-    @media (min-width: 640px) {
+    @media (min-width: 481px) {
       width: auto;
-      justify-content: flex-start;
     }
   }
 
@@ -197,27 +216,37 @@
     display: inline-flex;
     align-items: center;
     gap: var(--size-2);
+
+    @include bp.desktop-up {
+      gap: var(--size-3);
+    }
   }
 
   &__rating,
   &__likes {
+    @include type.label-medium;
+
     display: inline-flex;
     align-items: center;
     gap: var(--size-05);
     font-family: var(--font-main);
-    font-size: var(--label-medium);
-    font-weight: var(--weight-medium);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
     color: var(--color-on-primary);
+
+    @include bp.desktop-up {
+      font-size: var(--label-large);
+    }
 
     svg {
       flex-shrink: 0;
-      width: var(--size-2);
-      height: var(--size-2);
+      width: var(--size-3);
+      height: var(--size-3);
     }
   }
 
   &__rating svg {
-    color: var(--color-primary-high);
+    color: var(--color-primary);
   }
 
   &__likes svg {
@@ -226,38 +255,42 @@
 
   &__button {
     @include mix.button-reset;
+    @include type.body-small;
 
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 38px;
-    padding: var(--size-1) var(--size-2);
-    font-family: var(--font-main);
-    font-size: var(--label-large);
+    // Figma sizes include the 2px border, so it is subtracted from the padding.
+    padding: calc(var(--btn-medium-y) - 2px) calc(var(--btn-medium-x) - 2px);
     font-weight: var(--weight-bold);
+    line-height: 1.2;
     color: var(--color-on-primary);
     background-color: var(--color-primary);
-    border: 1px solid var(--color-on-primary);
+    border: 2px solid var(--color-on-primary);
     border-radius: var(--corner-small);
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
 
-    @media (min-width: 640px) {
+    @media (min-width: 481px) {
       width: auto;
-      min-width: 88px;
-      height: 32px;
-      padding: var(--size-05) var(--size-2);
+      padding: calc(var(--btn-small-y) - 2px) calc(var(--btn-small-x) - 2px);
     }
 
-    @media (hover: hover) {
-      &:hover {
-        background-color: var(--color-primary-low);
-      }
+    @include bp.desktop-up {
+      padding: calc(var(--btn-medium-y) - 2px) calc(var(--btn-medium-x) - 2px);
+    }
+
+    @include bp.hover {
+      background-color: var(--color-primary-low);
+      box-shadow: var(--shadow-hard-xs);
     }
 
     &:active {
-      transform: translateY(1px);
+      background-color: var(--color-primary-high);
+      box-shadow: none;
     }
 
     &:focus-visible {

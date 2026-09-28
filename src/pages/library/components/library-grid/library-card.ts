@@ -70,13 +70,13 @@ export function createLibraryCard(game: Game): HTMLElement {
 
   const rating = createElement('span', {
     className: 'library-card__rating',
-    children: [createStarIcon(), createElement('span', { text: game.rating.toFixed(1) })],
+    children: [createStarIcon('outline'), createElement('span', { text: game.rating.toFixed(1) })],
   });
 
   const likes = createElement('span', {
     className: 'library-card__likes',
     children: [
-      createHeartIcon(),
+      createHeartIcon('outline'),
       createElement('span', { text: formatCompactNumber(game.likesCount) }),
     ],
   });

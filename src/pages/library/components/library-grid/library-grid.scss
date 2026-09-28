@@ -4,29 +4,25 @@
 .library-grid {
   @include mix.container;
 
-  padding-top: var(--size-2);
-  padding-bottom: var(--size-6);
-
   &__list {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--size-3);
+    gap: var(--size-2);
     padding: 0;
     margin: 0;
     list-style: none;
 
-    @media (min-width: 1024px) {
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--size-4);
+    @media (min-width: 481px) {
+      gap: var(--size-3);
+    }
+
+    @include bp.laptop-up {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   &__item {
     display: flex;
-    width: 100%;
-  }
-
-  &__item > * {
-    width: 100%;
+    min-width: 0;
   }
 }

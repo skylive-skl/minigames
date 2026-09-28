@@ -47,7 +47,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     },
   });
 
-  const hero = createGameDetailsHero({ title: tukoniGameDetails.name });
+  const hero = createGameDetailsHero({ title: tukoniGameDetails.name, closeButton });
   const info = createGameDetailsInfo(tukoniGameDetails);
   const records = createGameDetailsRecords(tukoniGameDetails.topRecords);
   const comments = createGameDetailsComments(tukoniComments);
@@ -59,7 +59,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
 
   const panel = createElement('div', {
     className: 'game-details-dialog__panel',
-    children: [closeButton, hero, body],
+    children: [hero, body],
   });
 
   const dialog = createElement('dialog', {

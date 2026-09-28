@@ -11,46 +11,56 @@
 
   padding-block: var(--size-4);
 
-  @include bp.desktop-up {
-    padding-block: var(--size-8) var(--size-4);
+  @media (min-width: 481px) {
+    padding-block: var(--size-5);
   }
 }
 
+// Figma: desktop — brand on the left, link columns grouped on the right
+// (80px apart); tablet — brand stacked above one row of columns (40px apart);
+// mobile — Explore/Company in two columns, Community on its own row.
 .footer__top {
   display: grid;
-  // Tablet keeps Explore/Company/Community as one 3-column row below the
-  // brand block; only mobile reflows them into a 2x2 grid (confirmed via
-  // design-refs pixel sampling — the plan's "tablet stacked" note refers to
-  // brand-above-nav, not the nav columns themselves splitting further).
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--size-4);
-  margin-bottom: var(--size-4);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--size-3) var(--size-5);
+  margin-bottom: var(--size-3);
 
-  @include bp.mobile-down {
-    grid-template-columns: repeat(2, 1fr);
+  @media (min-width: 481px) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-3) var(--size-5);
+    margin-bottom: var(--size-5);
   }
 
   @include bp.desktop-up {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--size-5);
-    margin-bottom: var(--size-6);
+    flex-wrap: nowrap;
+    gap: var(--size-10);
+    margin-bottom: var(--size-8);
   }
 }
 
 .footer__brand {
   grid-column: 1 / -1;
 
-  @include bp.desktop-up {
-    max-width: 400px;
+  @media (min-width: 481px) {
+    flex: 1 0 100%;
   }
+
+  @include bp.desktop-up {
+    flex: 0 1 var(--size-footer-brand);
+    margin-right: auto;
+  }
+}
+
+.footer__community {
+  grid-column: 1 / -1;
 }
 
 .footer__logo {
   display: inline-flex;
   align-items: center;
   gap: var(--size-1);
-  margin-bottom: var(--size-2);
+  margin-bottom: var(--size-3);
   color: var(--color-white);
 }
 
@@ -61,22 +71,29 @@
 }
 
 .footer__logo-text {
-  @include type.display-small;
+  @include type.headline-small;
+
+  font-weight: var(--weight-bold);
+
+  @include bp.desktop-up {
+    @include type.display-small;
+  }
 }
 
 .footer__description {
-  @include type.body-medium;
+  @include type.body-small;
 
   margin: 0;
   color: var(--color-on-bg-footer);
 }
 
 .footer__nav-heading {
-  @include type.label-extra-large;
+  @include type.body-medium;
 
   margin: 0 0 var(--size-2);
   color: var(--color-white);
   font-weight: var(--weight-bold);
+  line-height: 1.2;
 }
 
 .footer__nav-list {
@@ -89,10 +106,13 @@
 }
 
 .footer__nav-link {
-  @include type.body-medium;
+  @include type.body-small;
   @include mix.focus-ring;
 
+  display: block;
+  width: fit-content;
   color: var(--color-on-bg-footer);
+  line-height: 1.2;
 
   @include bp.hover {
     color: var(--color-white);
@@ -110,8 +130,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-5);
-  height: var(--size-5);
+  width: var(--size-4);
+  height: var(--size-4);
   background-color: var(--color-bg-footer-low);
   border-radius: var(--corner-full);
   color: var(--color-white);
@@ -119,24 +139,47 @@
   @include bp.hover {
     background-color: var(--color-bg-footer-lowest);
   }
+
+  @include bp.desktop-up {
+    width: var(--size-5);
+    height: var(--size-5);
+  }
 }
 
 .footer__divider {
   height: 1px;
-  margin: 0 0 var(--size-4);
+  margin: 0 0 var(--size-1);
   background-color: var(--color-bg-footer-low);
   border: none;
+
+  @media (min-width: 481px) {
+    margin-bottom: var(--size-2);
+  }
+
+  @include bp.desktop-up {
+    margin-bottom: var(--size-3);
+  }
 }
 
+// Mobile: copyright line, then the RS/GitHub row; "Designed with love" is
+// absent from the mobile mockup. Wider screens spread all four items evenly.
 .footer__bottom {
   @include type.body-small;
 
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--size-2) var(--size-4);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-1);
   color: var(--color-on-bg-footer);
+  line-height: 1.2;
+
+  @media (min-width: 481px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-2);
+  }
 }
 
 .footer__copyright {
@@ -147,9 +190,12 @@
 
 .footer__meta {
   display: flex;
-  flex-shrink: 0;
   flex-wrap: wrap;
-  gap: var(--size-2) var(--size-4);
+  gap: var(--size-1) var(--size-2);
+
+  @media (min-width: 481px) {
+    display: contents;
+  }
 }
 
 .footer__meta-link {
@@ -175,13 +221,18 @@
   width: var(--size-3);
   height: var(--size-3);
   border-radius: var(--corner-full);
+
+  @include bp.tablet-down {
+    width: calc(var(--size-3) - var(--size-05));
+    height: calc(var(--size-3) - var(--size-05));
+  }
 }
 
 .footer__badge--rs {
   @include type.label-small;
 
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
+  background-color: var(--color-bg-footer-low);
+  color: var(--color-primary);
   font-weight: var(--weight-bold);
 }
 
@@ -194,4 +245,8 @@
   flex-shrink: 0;
   margin: 0;
   white-space: nowrap;
+
+  @include bp.mobile-down {
+    display: none;
+  }
 }
