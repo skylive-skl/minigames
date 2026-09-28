@@ -1,25 +1,15 @@
 import { tukoniComments } from '@/data/comments-tukoni';
 import { createElement } from '@/shared/lib/dom';
+import { formatRelativeTime } from '@/shared/lib/format';
 import type { GameComment } from '@/shared/types/game';
 import { createHeartIcon } from '@/shared/ui/icon/icon';
 
+// Avatar fills from the Figma comment cards (2:1478, 2:1490, 2:1502).
 const AVATAR_COLORS: readonly string[] = [
-  'var(--color-avatar-2)',
   'var(--color-avatar-3)',
-  'var(--color-avatar-4)',
+  'var(--color-primary)',
+  'var(--color-avatar-5)',
 ];
-
-function formatCommentDate(isoString: string): string {
-  const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) {
-    return isoString;
-  }
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 export interface CommentsListController {
   readonly element: HTMLElement;
@@ -55,17 +45,17 @@ export function createCommentsList(
     const date = createElement('time', {
       className: 'game-details-dialog__comment-date',
       attributes: { datetime: comment.createdAt },
-      text: formatCommentDate(comment.createdAt),
+      text: formatRelativeTime(comment.createdAt),
     });
 
-    const meta = createElement('div', {
-      className: 'game-details-dialog__comment-meta',
-      children: [author, date],
+    const authorGroup = createElement('div', {
+      className: 'game-details-dialog__comment-author-group',
+      children: [avatar, author],
     });
 
     const header = createElement('div', {
       className: 'game-details-dialog__comment-header',
-      children: [avatar, meta],
+      children: [authorGroup, date],
     });
 
     const text = createElement('p', {
@@ -73,7 +63,7 @@ export function createCommentsList(
       text: comment.text,
     });
 
-    const heartIcon = createHeartIcon();
+    const heartIcon = createHeartIcon('outline');
     heartIcon.classList.add('game-details-dialog__comment-like-icon');
 
     const countSpan = createElement('span', {

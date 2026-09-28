@@ -1,4 +1,5 @@
 import { createElement } from '@/shared/lib/dom';
+import { createSendIcon } from '@/shared/ui/icon/icon';
 
 const MAX_TEXTAREA_HEIGHT = 88;
 
@@ -12,16 +13,18 @@ export function createCommentForm(): CommentFormController {
     className: 'game-details-dialog__comment-input',
     attributes: {
       rows: '1',
-      placeholder: 'Share your thoughts about this game...',
+      placeholder: 'Write a comment...',
       'aria-label': 'Write a comment',
     },
   });
 
   function adjustTextareaHeight(): void {
     textarea.style.height = 'auto';
-    const newHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT);
-    textarea.style.height = `${String(newHeight)}px`;
-    textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT ? 'auto' : 'hidden';
+    // scrollHeight excludes the borders, while the height is border-box.
+    const borders = textarea.offsetHeight - textarea.clientHeight;
+    const contentHeight = textarea.scrollHeight + borders;
+    textarea.style.height = `${String(Math.min(contentHeight, MAX_TEXTAREA_HEIGHT))}px`;
+    textarea.style.overflowY = contentHeight > MAX_TEXTAREA_HEIGHT ? 'auto' : 'hidden';
   }
 
   textarea.addEventListener('input', () => {
@@ -33,29 +36,19 @@ export function createCommentForm(): CommentFormController {
     attributes: {
       'aria-hidden': 'true',
     },
-    text: 'YO',
-  });
-
-  const inputRow = createElement('div', {
-    className: 'game-details-dialog__comment-input-row',
-    children: [userAvatar, textarea],
+    text: 'U',
   });
 
   const submitButton = createElement('button', {
-    className: 'game-details-dialog__button game-details-dialog__button--submit',
-    attributes: { type: 'submit' },
-    text: 'Submit',
-  });
-
-  const formActions = createElement('div', {
-    className: 'game-details-dialog__comment-form-actions',
-    children: [submitButton],
+    className: 'game-details-dialog__comment-submit',
+    attributes: { type: 'submit', 'aria-label': 'Submit comment' },
+    children: [createSendIcon()],
   });
 
   const form = createElement('form', {
     className: 'game-details-dialog__comment-form',
     attributes: { 'aria-label': 'Add a comment' },
-    children: [inputRow, formActions],
+    children: [userAvatar, textarea, submitButton],
   });
 
   form.addEventListener('submit', (event) => {
