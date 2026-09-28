@@ -31,6 +31,9 @@
   --color-bg-footer-lowest: #3c376e;
   --color-on-bg-footer: #b9b5c9;
 
+  // Dialog backdrop
+  --color-backdrop: rgb(36 33 69 / 60%);
+
   // Outlines
   --color-outline: #e5e7eb;
   --color-outline-variant: #d2d2d2;
@@ -59,6 +62,19 @@
   --size-13: 104px;
   --size-14: 112px;
   --size-15: 120px;
+
+  // Component sizes (Figma: library-desktop 2:611, library-tablet 2:820,
+  // library-mobile 2:1023, Game Detail Dialog Modal 2:1406)
+  --size-header-desktop: 85px;
+  --size-footer-brand: 400px;
+  --size-card-height: 200px;
+  --size-card-height-compact: 152px;
+  --size-card-media: 320px;
+  --size-card-media-compact: 270px;
+  --size-card-media-stacked: 160px;
+  --size-dialog: 600px;
+  --size-dialog-hero: 220px;
+  --size-sort-menu: 190px;
 
   // Corners
   --corner-extra-small: 4px;
@@ -99,10 +115,13 @@
   --weight-extra-bold: 800;
 
   // Shadows (жёсткие, без размытия — фирменная черта макета)
+  --shadow-hard-xs: 3px 3px 0 var(--color-on-primary);
   --shadow-hard-sm: 4px 4px 0 var(--color-on-primary);
   --shadow-hard-md: 6px 6px 0 var(--color-on-primary);
   --shadow-hard-lg: 8px 8px 0 var(--color-on-primary);
+  --shadow-hard-black-xs: 2px 2px 0 var(--color-black);
   --shadow-hard-black: 4px 4px 0 var(--color-black);
+  --shadow-hard-black-lg: 8px 8px 0 var(--color-black);
   --shadow-soft-card: 0 14px 30px -10px rgb(0 0 0 / 8%), 0 2px 8px -4px rgb(0 0 0 / 4%);
   --shadow-soft-modal: 0 10px 20px -10px rgb(0 0 0 / 10%);
 }

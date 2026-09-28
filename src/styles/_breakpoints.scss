@@ -1,5 +1,6 @@
 $breakpoint-mobile: 375px;
 $breakpoint-tablet: 768px;
+$breakpoint-laptop: 1440px;
 $breakpoint-desktop: 1920px;
 
 $container-max: 1920px;
@@ -28,5 +29,13 @@ $content-max: 1680px;
     &:hover {
       @content;
     }
+  }
+}
+
+// Library grid switches to two card columns only when a 320px cover still
+// leaves the card content enough room (Figma shows 2 columns at 1920px).
+@mixin laptop-up {
+  @media (min-width: #{$breakpoint-laptop}) {
+    @content;
   }
 }
