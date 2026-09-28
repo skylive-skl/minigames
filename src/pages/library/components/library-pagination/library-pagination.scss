@@ -8,13 +8,24 @@
   align-items: center;
   justify-content: center;
   gap: var(--size-1);
-  padding-top: var(--size-2);
-  padding-bottom: var(--size-7);
+  padding-block: var(--size-3);
+
+  @media (min-width: 481px) {
+    padding-block: var(--size-5);
+  }
+
+  @include bp.desktop-up {
+    gap: var(--size-2);
+  }
 
   &__list {
     display: flex;
     align-items: center;
     gap: var(--size-1);
+
+    @include bp.desktop-up {
+      gap: var(--size-2);
+    }
     padding: 0;
     margin: 0;
     list-style: none;
@@ -34,17 +45,17 @@
     width: var(--size-5);
     height: var(--size-5);
     font-family: var(--font-main);
-    font-size: var(--body-medium);
+    font-size: var(--label-large);
     font-weight: var(--weight-bold);
     color: var(--color-on-primary);
     background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
+    border: 2px solid var(--color-on-primary);
     border-radius: var(--corner-full);
     transition: all 0.15s ease;
 
     @media (hover: hover) {
       &:hover:not(.library-pagination__page--active) {
-        background-color: var(--color-surface);
+        background-color: var(--color-secondary);
       }
     }
 
@@ -75,13 +86,13 @@
     height: var(--size-5);
     color: var(--color-on-primary);
     background-color: var(--color-white);
-    border: 1px solid var(--color-on-primary);
+    border: 2px solid var(--color-on-primary);
     border-radius: var(--corner-full);
     transition: all 0.15s ease;
 
     @media (hover: hover) {
       &:hover:not(:disabled) {
-        background-color: var(--color-surface);
+        background-color: var(--color-secondary);
       }
     }
 
@@ -98,14 +109,14 @@
     &:disabled {
       color: var(--color-text-placeholder);
       cursor: not-allowed;
-      background-color: var(--color-surface-low);
-      border-color: var(--color-outline-variant);
+      background-color: transparent;
+      border-color: var(--color-outline);
       pointer-events: none;
     }
   }
 
   &__arrow-icon {
-    width: var(--size-2);
-    height: var(--size-2);
+    width: var(--size-3);
+    height: var(--size-3);
   }
 }
