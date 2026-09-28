@@ -12,7 +12,6 @@ export interface GameDetailsInfoController {
 interface SpecItem {
   readonly label: string;
   readonly value: string;
-  readonly isPrice?: boolean;
 }
 
 export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoController {
@@ -26,7 +25,7 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
     text: game.name,
   });
 
-  const starIcon = createStarIcon();
+  const starIcon = createStarIcon('outline');
   starIcon.classList.add('game-details-dialog__stat-icon', 'game-details-dialog__stat-icon--star');
 
   const ratingStat = createElement('div', {
@@ -40,7 +39,7 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
     ],
   });
 
-  const heartIcon = createHeartIcon();
+  const heartIcon = createHeartIcon('outline');
   heartIcon.classList.add(
     'game-details-dialog__stat-icon',
     'game-details-dialog__stat-icon--likes',
@@ -67,36 +66,29 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
     children: [title, stats],
   });
 
+  const description = createElement('p', {
+    className: 'game-details-dialog__description',
+    text: game.fullDescription,
+  });
+
   const specItems: readonly SpecItem[] = [
     { label: 'Genre', value: game.specs.genre },
     { label: 'Players', value: game.specs.players },
     { label: 'Duration', value: game.specs.duration },
-    { label: 'Price', value: game.specs.price, isPrice: true },
+    { label: 'Price', value: game.specs.price },
   ];
 
-  const badgesList = createElement('ul', {
-    className: 'game-details-dialog__badges',
-    attributes: { 'aria-label': 'Game specifications' },
-    children: specItems.map((spec) => {
-      const labelSpan = createElement('span', {
-        className: 'game-details-dialog__badge-label',
-        text: `${spec.label}:`,
-      });
-      const valueSpan = createElement('span', {
-        className: `game-details-dialog__badge-value${spec.isPrice ? ' game-details-dialog__badge-value--price' : ''}`,
-        text: spec.value,
-      });
-
-      return createElement('li', {
-        className: 'game-details-dialog__badge',
-        children: [labelSpan, valueSpan],
-      });
-    }),
-  });
-
-  const description = createElement('p', {
-    className: 'game-details-dialog__description',
-    text: game.fullDescription,
+  const specsList = createElement('dl', {
+    className: 'game-details-dialog__specs',
+    children: specItems.map((spec) =>
+      createElement('div', {
+        className: 'game-details-dialog__spec',
+        children: [
+          createElement('dt', { className: 'game-details-dialog__spec-label', text: spec.label }),
+          createElement('dd', { className: 'game-details-dialog__spec-value', text: spec.value }),
+        ],
+      }),
+    ),
   });
 
   const playButton = createElement('button', {
@@ -109,12 +101,12 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
     },
   });
 
-  const favoriteIcon = createHeartIcon();
+  const favoriteIcon = createHeartIcon('outline');
   favoriteIcon.classList.add('game-details-dialog__button-icon');
 
   const favoriteText = createElement('span', {
     className: 'game-details-dialog__button-text',
-    text: isFavoriteActive ? 'In Favorites' : 'Add to Favorites',
+    text: 'Add to Favorites',
   });
 
   const favoriteButton = createElement('button', {
@@ -136,7 +128,6 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
       'game-details-dialog__button--favorite-active',
       isFavoriteActive,
     );
-    favoriteText.textContent = isFavoriteActive ? 'In Favorites' : 'Add to Favorites';
   }
 
   const actions = createElement('div', {
@@ -147,7 +138,7 @@ export function createGameDetailsInfo(game: GameDetails): GameDetailsInfoControl
   const section = createElement('section', {
     className: 'game-details-dialog__info',
     attributes: { 'aria-labelledby': 'game-details-title' },
-    children: [headerRow, badgesList, description, actions],
+    children: [headerRow, description, specsList, actions],
   });
 
   return {
