@@ -31,6 +31,11 @@ img {
   max-width: 100%;
 }
 
+// Components set their own display values; the hidden attribute must win.
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   min-height: 100%;

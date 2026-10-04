@@ -1,14 +1,21 @@
-import { tukoniComments } from '@/data/comments-tukoni';
-import { tukoniGameDetails } from '@/data/game-tukoni';
+import { fetchLatestComments } from '@/shared/api/comments-api';
+import { fetchGameDetails } from '@/shared/api/games-api';
+import { ApiError, isAbortError } from '@/shared/api/http';
 import { onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
+import type { GameDetails } from '@/shared/types/game';
+import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
+import { createSkeleton, setBusy } from '@/shared/ui/skeleton/skeleton';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameDetailsComments } from './game-details-comments';
 import { createGameDetailsHero } from './game-details-hero';
 import { createGameDetailsInfo } from './game-details-info';
 import { createGameDetailsRecords } from './game-details-records';
 import './game-details-dialog.scss';
+
+const NOT_FOUND_STATUS = 404;
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -24,13 +31,33 @@ function unlockBodyScroll(): void {
   document.body.style.paddingRight = '';
 }
 
+function createBodySkeleton(): HTMLElement {
+  const text = (modifier: string): HTMLElement =>
+    createSkeleton({ shape: 'text', className: `game-details-dialog__skeleton-${modifier}` });
+
+  return createElement('div', {
+    className: 'game-details-dialog__skeleton',
+    children: [
+      text('title'),
+      text('line'),
+      text('line'),
+      text('line-short'),
+      createSkeleton({ className: 'game-details-dialog__skeleton-specs' }),
+      createSkeleton({ className: 'game-details-dialog__skeleton-actions' }),
+      createSkeleton({ className: 'game-details-dialog__skeleton-records' }),
+    ],
+  });
+}
+
 export interface GameDetailsDialogComponent extends Component {
-  readonly open: () => void;
+  readonly open: (slug?: string) => void;
   readonly close: () => void;
 }
 
 export function createGameDetailsDialog(): GameDetailsDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
+  let abortController: AbortController | undefined;
+  let commentsAbortController: AbortController | undefined;
 
   const closeIcon = createCloseIcon();
   closeIcon.classList.add('game-details-dialog__close-icon');
@@ -47,19 +74,19 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     },
   });
 
-  const hero = createGameDetailsHero({ title: tukoniGameDetails.name, closeButton });
-  const info = createGameDetailsInfo(tukoniGameDetails);
-  const records = createGameDetailsRecords(tukoniGameDetails.topRecords);
-  const comments = createGameDetailsComments(tukoniComments);
+  const hero = createGameDetailsHero({ closeButton });
+  const info = createGameDetailsInfo();
+  const records = createGameDetailsRecords();
+  const comments = createGameDetailsComments();
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
-    children: [info.element, records, comments.element],
+    children: [info.element, records.element, comments.element],
   });
 
   const panel = createElement('div', {
     className: 'game-details-dialog__panel',
-    children: [hero, body],
+    children: [hero.element, body],
   });
 
   const dialog = createElement('dialog', {
@@ -101,7 +128,113 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     }
   }
 
-  const openDialog = (): void => {
+  const detailsSections: readonly HTMLElement[] = [info.element, records.element, comments.element];
+
+  function showLoading(): void {
+    hero.showLoading();
+    body.replaceChildren(createBodySkeleton());
+    setBusy(panel, true);
+  }
+
+  function showDetails(details: GameDetails): void {
+    setBusy(panel, false);
+    hero.update(details);
+    info.update(details);
+    records.update(details.topRecords);
+    body.replaceChildren(...detailsSections);
+  }
+
+  function showNotFound(slug: string | undefined): void {
+    setBusy(panel, false);
+    hero.clear();
+    body.replaceChildren(
+      createEmptyState({
+        title: 'Game Not Found',
+        message:
+          slug === undefined
+            ? 'No game was selected.'
+            : `We could not find a game with the id "${slug}". It may have been removed or the link is broken.`,
+      }),
+    );
+  }
+
+  function showError(slug: string, message: string): void {
+    setBusy(panel, false);
+    hero.clear();
+    body.replaceChildren(
+      createErrorBanner({
+        title: 'Could not load game details',
+        message,
+        onRetry: () => {
+          void loadDetails(slug);
+        },
+      }),
+    );
+    showSnackbar({ message: 'Failed to load game details.', variant: 'error' });
+  }
+
+  async function loadComments(slug: string): Promise<void> {
+    commentsAbortController?.abort();
+    const controller = new AbortController();
+    commentsAbortController = controller;
+
+    comments.showLoading();
+
+    try {
+      const response = await fetchLatestComments(slug, controller.signal);
+      comments.showComments(response.data, response.meta.totalComments);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      comments.showError(error instanceof Error ? error.message : 'Unknown error', () => {
+        void loadComments(slug);
+      });
+      showSnackbar({ message: 'Failed to load comments.', variant: 'error' });
+    }
+  }
+
+  function abortRequests(): void {
+    abortController?.abort();
+    commentsAbortController?.abort();
+  }
+
+  async function loadDetails(slug: string | undefined): Promise<void> {
+    abortRequests();
+
+    if (slug === undefined || slug === '') {
+      showNotFound(undefined);
+      return;
+    }
+
+    const controller = new AbortController();
+    abortController = controller;
+    showLoading();
+    // Comments load in parallel and keep their own loading/error state.
+    void loadComments(slug);
+
+    try {
+      showDetails(await fetchGameDetails(slug, controller.signal));
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      commentsAbortController?.abort();
+      if (error instanceof ApiError && error.status === NOT_FOUND_STATUS) {
+        showNotFound(slug);
+        return;
+      }
+      showError(slug, error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  const openDialog = (slug?: string): void => {
+    void loadDetails(slug);
+
+    if (dialog.open) {
+      return;
+    }
+
     lastFocusedElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
 
@@ -124,6 +257,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   });
 
   dialog.addEventListener('close', () => {
+    abortRequests();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     info.resetFavorite();
@@ -131,8 +265,8 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     lastFocusedElement?.focus();
   });
 
-  const unsubscribe = onGameDetailsOpen(() => {
-    openDialog();
+  const unsubscribe = onGameDetailsOpen((slug) => {
+    openDialog(slug);
   });
 
   return {
@@ -140,6 +274,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     open: openDialog,
     close: closeDialog,
     destroy: (): void => {
+      abortRequests();
       unsubscribe();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
