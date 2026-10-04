@@ -2,7 +2,7 @@ import { getRouteState, updateQuery } from '@/app/router';
 import type { PageComponent } from '@/app/routes';
 import { createFooter } from '@/components/footer/footer';
 import { fetchGames } from '@/shared/api/games-api';
-import { isAbortError } from '@/shared/api/http';
+import { ApiError, isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createLibraryFilter } from './components/library-filter/library-filter';
@@ -15,6 +15,8 @@ import {
   type LibraryQuery,
 } from './library-query';
 import './library-page.scss';
+
+const BAD_REQUEST_STATUS = 400;
 
 function isSameQuery(a: LibraryQuery, b: LibraryQuery): boolean {
   return (
@@ -89,6 +91,12 @@ export function createLibraryPage(): PageComponent {
       pagination.update({ page: response.meta.page, totalPages: response.meta.totalPages });
     } catch (error) {
       if (isAbortError(error)) {
+        return;
+      }
+      // 400 = the URL holds a category/sort the API does not know: that is
+      // missing data for these criteria, not a server failure.
+      if (error instanceof ApiError && error.status === BAD_REQUEST_STATUS) {
+        showNotFound();
         return;
       }
       grid.showError(error instanceof Error ? error.message : 'Unknown error', () => {
