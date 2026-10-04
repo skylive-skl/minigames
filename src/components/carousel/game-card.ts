@@ -1,17 +1,8 @@
 import { createElement } from '@/shared/lib/dom';
 import { formatCompactNumber } from '@/shared/lib/format';
+import { getGameImageUrl } from '@/shared/lib/game-images';
 import type { Game } from '@/shared/types/game';
 import { createHeartIcon, createStarIcon } from '@/shared/ui/icon/icon';
-
-const cardImageModules = import.meta.glob<string>('/src/assets/images/games/*-card.jpg', {
-  eager: true,
-  import: 'default',
-});
-
-function getCardImageUrl(slug: string): string {
-  const path = `/src/assets/images/games/${slug}-card.jpg`;
-  return cardImageModules[path] ?? '';
-}
 
 export type CardPosition = 'edge' | 'side' | 'center' | 'outer';
 
@@ -23,7 +14,7 @@ export function createGameCard(
   const image = createElement('img', {
     className: 'game-card__image',
     attributes: {
-      src: getCardImageUrl(game.slug),
+      src: getGameImageUrl(game.slug, 'card'),
       alt: game.name,
       loading: 'lazy',
     },

@@ -2,19 +2,10 @@ import { categories } from '@/data/categories';
 import { dispatchGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import { formatCompactNumber } from '@/shared/lib/format';
+import { getGameImageUrl } from '@/shared/lib/game-images';
 import type { Game } from '@/shared/types/game';
 import { createHeartIcon, createStarIcon } from '@/shared/ui/icon/icon';
 import './library-card.scss';
-
-const cardImageModules = import.meta.glob<string>('/src/assets/images/games/*-card.jpg', {
-  eager: true,
-  import: 'default',
-});
-
-function getCardImageUrl(slug: string): string {
-  const path = `/src/assets/images/games/${slug}-card.jpg`;
-  return cardImageModules[path] ?? '';
-}
 
 export function createLibraryCard(game: Game): HTMLElement {
   const isFree = game.price.toLowerCase().includes('free');
@@ -27,7 +18,7 @@ export function createLibraryCard(game: Game): HTMLElement {
   const image = createElement('img', {
     className: 'library-card__image',
     attributes: {
-      src: getCardImageUrl(game.slug),
+      src: getGameImageUrl(game.slug, 'card'),
       alt: game.name,
       loading: 'lazy',
     },
