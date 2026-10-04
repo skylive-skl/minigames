@@ -1,4 +1,4 @@
-import { tukoniComments } from '@/data/comments-tukoni';
+import { fetchLatestComments } from '@/shared/api/comments-api';
 import { fetchGameDetails } from '@/shared/api/games-api';
 import { ApiError, isAbortError } from '@/shared/api/http';
 import { onGameDetailsOpen } from '@/shared/lib/app-events';
@@ -57,6 +57,7 @@ export interface GameDetailsDialogComponent extends Component {
 export function createGameDetailsDialog(): GameDetailsDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
   let abortController: AbortController | undefined;
+  let commentsAbortController: AbortController | undefined;
 
   const closeIcon = createCloseIcon();
   closeIcon.classList.add('game-details-dialog__close-icon');
@@ -76,7 +77,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   const hero = createGameDetailsHero({ closeButton });
   const info = createGameDetailsInfo();
   const records = createGameDetailsRecords();
-  const comments = createGameDetailsComments(tukoniComments);
+  const comments = createGameDetailsComments();
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
@@ -172,8 +173,34 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     showSnackbar({ message: 'Failed to load game details.', variant: 'error' });
   }
 
-  async function loadDetails(slug: string | undefined): Promise<void> {
+  async function loadComments(slug: string): Promise<void> {
+    commentsAbortController?.abort();
+    const controller = new AbortController();
+    commentsAbortController = controller;
+
+    comments.showLoading();
+
+    try {
+      const response = await fetchLatestComments(slug, controller.signal);
+      comments.showComments(response.data, response.meta.totalComments);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      comments.showError(error instanceof Error ? error.message : 'Unknown error', () => {
+        void loadComments(slug);
+      });
+      showSnackbar({ message: 'Failed to load comments.', variant: 'error' });
+    }
+  }
+
+  function abortRequests(): void {
     abortController?.abort();
+    commentsAbortController?.abort();
+  }
+
+  async function loadDetails(slug: string | undefined): Promise<void> {
+    abortRequests();
 
     if (slug === undefined || slug === '') {
       showNotFound(undefined);
@@ -183,6 +210,8 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     const controller = new AbortController();
     abortController = controller;
     showLoading();
+    // Comments load in parallel and keep their own loading/error state.
+    void loadComments(slug);
 
     try {
       showDetails(await fetchGameDetails(slug, controller.signal));
@@ -190,6 +219,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
       if (isAbortError(error)) {
         return;
       }
+      commentsAbortController?.abort();
       if (error instanceof ApiError && error.status === NOT_FOUND_STATUS) {
         showNotFound(slug);
         return;
@@ -227,7 +257,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   });
 
   dialog.addEventListener('close', () => {
-    abortController?.abort();
+    abortRequests();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     info.resetFavorite();
@@ -244,7 +274,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     open: openDialog,
     close: closeDialog,
     destroy: (): void => {
-      abortController?.abort();
+      abortRequests();
       unsubscribe();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();

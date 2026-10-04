@@ -133,6 +133,22 @@
     height: var(--size-6);
   }
 
+  &__comment-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1);
+  }
+
+  &__comment-input:disabled,
+  &__comment-submit:disabled,
+  &__comment-like-button:disabled {
+    cursor: not-allowed;
+  }
+
+  &__comment-submit:disabled {
+    opacity: 0.5;
+  }
+
   &__skeleton-records {
     height: var(--size-15);
   }
