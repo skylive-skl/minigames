@@ -165,8 +165,10 @@ export function createLibraryPagination(
 
   return {
     element: nav,
+    // Syncs the UI with external state (the URL) without emitting onPageChange.
     setPage: (page: number): void => {
-      goToPage(page);
+      currentPage = Math.max(1, Math.min(page, totalPages));
+      renderPagination();
     },
     getPage: (): number => currentPage,
     destroy: (): void => {

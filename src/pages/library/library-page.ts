@@ -1,22 +1,36 @@
+import { getRouteState, updateQuery } from '@/app/router';
+import type { PageComponent } from '@/app/routes';
 import { createFooter } from '@/components/footer/footer';
-import { games } from '@/data/games';
+import { games as mockGames } from '@/data/games';
+import { fetchGames, LIBRARY_PAGE_SIZE } from '@/shared/api/games-api';
+import { isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
-import type { Component } from '@/shared/types/component';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createLibraryFilter } from './components/library-filter/library-filter';
-import { createLibraryGrid, LIBRARY_GAMES_PER_PAGE } from './components/library-grid/library-grid';
+import { createLibraryGrid } from './components/library-grid/library-grid';
 import { createLibraryPagination } from './components/library-pagination/library-pagination';
+import { parseLibraryQuery, toLibraryQueryPatch, type LibraryQuery } from './library-query';
 import './library-page.scss';
 
-export function createLibraryPage(): Component {
-  const totalPages = Math.ceil(games.length / LIBRARY_GAMES_PER_PAGE);
+function isSameQuery(a: LibraryQuery, b: LibraryQuery): boolean {
+  return (
+    a.category === b.category && a.sort === b.sort && a.page === b.page && a.isValid === b.isValid
+  );
+}
+
+// The URL is the single source of truth: controls only update the query
+// string, and every games request is derived from the parsed URL.
+export function createLibraryPage(): PageComponent {
+  let query = parseLibraryQuery(getRouteState().params);
+  let abortController: AbortController | undefined;
 
   const filter = createLibraryFilter();
   const grid = createLibraryGrid();
   const pagination = createLibraryPagination({
-    initialPage: 1,
-    totalPages,
+    initialPage: query.page,
+    totalPages: Math.ceil(mockGames.length / LIBRARY_PAGE_SIZE),
     onPageChange: (page) => {
-      grid.setPage(page);
+      updateQuery(toLibraryQueryPatch({ page }));
       grid.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
   });
@@ -32,9 +46,55 @@ export function createLibraryPage(): Component {
     children: [content, footer.element],
   });
 
+  async function loadGames(): Promise<void> {
+    abortController?.abort();
+
+    if (!query.isValid) {
+      grid.showNotFound();
+      return;
+    }
+
+    const controller = new AbortController();
+    abortController = controller;
+    grid.showLoading();
+
+    try {
+      const response = await fetchGames(query, controller.signal);
+
+      if (response.data.length === 0) {
+        grid.showNotFound();
+      } else {
+        grid.showGames(response.data);
+      }
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      grid.showError(error instanceof Error ? error.message : 'Unknown error', () => {
+        void loadGames();
+      });
+      showSnackbar({ message: 'Failed to load games.', variant: 'error' });
+    }
+  }
+
+  void loadGames();
+
   return {
     element,
+    onQueryChange: (parameters: URLSearchParams): void => {
+      const nextQuery = parseLibraryQuery(parameters);
+
+      // Dialog params (e.g. ?game=) also change the query; ignore them here.
+      if (isSameQuery(query, nextQuery)) {
+        return;
+      }
+
+      query = nextQuery;
+      pagination.setPage(query.page);
+      void loadGames();
+    },
     destroy: (): void => {
+      abortController?.abort();
       filter.destroy?.();
       grid.destroy?.();
       pagination.destroy?.();

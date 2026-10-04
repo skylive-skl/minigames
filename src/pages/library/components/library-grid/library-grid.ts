@@ -1,43 +1,45 @@
-import { games } from '@/data/games';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { Game } from '@/shared/types/game';
+import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
+import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { createLibraryCard } from './library-card';
 import './library-grid.scss';
 
-export const LIBRARY_GAMES_PER_PAGE = 6;
-
-export interface LibraryGridOptions {
-  readonly gamesList?: readonly Game[];
-}
+const SKELETON_CARDS_COUNT = 6;
 
 export interface LibraryGridComponent extends Component {
-  readonly setPage: (page: number) => void;
+  readonly showLoading: () => void;
+  readonly showGames: (games: readonly Game[]) => void;
+  readonly showNotFound: () => void;
+  readonly showError: (message: string, onRetry: () => void) => void;
 }
 
-export function createLibraryGrid(options?: LibraryGridOptions): LibraryGridComponent {
-  const allGames = options?.gamesList ?? games;
+function createListItem(content: HTMLElement): HTMLLIElement {
+  return createElement('li', { className: 'library-grid__item', children: [content] });
+}
 
-  const list = createElement('ul', {
-    className: 'library-grid__list',
+function createSkeletonCard(): HTMLElement {
+  const text = (modifier: string): HTMLElement =>
+    createSkeleton({ shape: 'text', className: `library-card__skeleton-${modifier}` });
+
+  return createElement('div', {
+    className: 'library-card library-card--skeleton',
+    children: [
+      createElement('div', {
+        className: 'library-card__media',
+        children: [createSkeleton()],
+      }),
+      createElement('div', {
+        className: 'library-card__body library-card__skeleton-body',
+        children: [text('title'), text('line'), text('line'), text('footer')],
+      }),
+    ],
   });
+}
 
-  const renderPage = (page: number): void => {
-    const startIndex = (page - 1) * LIBRARY_GAMES_PER_PAGE;
-    const pageGames = allGames.slice(startIndex, startIndex + LIBRARY_GAMES_PER_PAGE);
-
-    const items = pageGames.map((game) => {
-      const card = createLibraryCard(game);
-      return createElement('li', {
-        className: 'library-grid__item',
-        children: [card],
-      });
-    });
-
-    list.replaceChildren(...items);
-  };
-
-  renderPage(1);
+export function createLibraryGrid(): LibraryGridComponent {
+  const list = createElement('ul', { className: 'library-grid__list' });
 
   const element = createElement('section', {
     className: 'library-grid',
@@ -45,10 +47,34 @@ export function createLibraryGrid(options?: LibraryGridOptions): LibraryGridComp
     children: [list],
   });
 
-  return {
-    element,
-    setPage: (page: number): void => {
-      renderPage(page);
-    },
-  };
+  function showLoading(): void {
+    list.replaceChildren(
+      ...createSkeletonList(SKELETON_CARDS_COUNT, () => createListItem(createSkeletonCard())),
+    );
+    element.replaceChildren(list);
+    setBusy(element, true);
+  }
+
+  function showGames(games: readonly Game[]): void {
+    setBusy(element, false);
+    list.replaceChildren(...games.map((game) => createListItem(createLibraryCard(game))));
+    element.replaceChildren(list);
+  }
+
+  function showNotFound(): void {
+    setBusy(element, false);
+    element.replaceChildren(
+      createEmptyState({
+        title: 'Data Not Found',
+        message: 'No games match these filters. Try another category, sort order or page.',
+      }),
+    );
+  }
+
+  function showError(message: string, onRetry: () => void): void {
+    setBusy(element, false);
+    element.replaceChildren(createErrorBanner({ title: 'Could not load games', message, onRetry }));
+  }
+
+  return { element, showLoading, showGames, showNotFound, showError };
 }
