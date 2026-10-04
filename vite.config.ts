@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { copyFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
@@ -33,9 +33,26 @@ function designReferencesDevelopmentServer(): Plugin {
   };
 }
 
+// GitHub Pages has no SPA rewrites: it serves 404.html for unknown paths, so a
+// copy of index.html lets deep links like /minigames/library?page=2 boot the app.
+function spaFallbackPage(): Plugin {
+  let outDirectory = 'dist';
+
+  return {
+    name: 'spa-fallback-page',
+    apply: 'build',
+    configResolved(config): void {
+      outDirectory = path.resolve(config.root, config.build.outDir);
+    },
+    async closeBundle(): Promise<void> {
+      await copyFile(path.join(outDirectory, 'index.html'), path.join(outDirectory, '404.html'));
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   base: '/minigames/',
-  plugins: [designReferencesDevelopmentServer()],
+  plugins: [designReferencesDevelopmentServer(), spaFallbackPage()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('src', import.meta.url)),
