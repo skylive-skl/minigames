@@ -1,8 +1,7 @@
 import { getRouteState, updateQuery } from '@/app/router';
 import type { PageComponent } from '@/app/routes';
 import { createFooter } from '@/components/footer/footer';
-import { games as mockGames } from '@/data/games';
-import { fetchGames, LIBRARY_PAGE_SIZE } from '@/shared/api/games-api';
+import { fetchGames } from '@/shared/api/games-api';
 import { isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
@@ -44,8 +43,6 @@ export function createLibraryPage(): PageComponent {
   filter.setActiveCategory(getRouteState().params.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
   const grid = createLibraryGrid();
   const pagination = createLibraryPagination({
-    initialPage: query.page,
-    totalPages: Math.ceil(mockGames.length / LIBRARY_PAGE_SIZE),
     onPageChange: (page) => {
       updateQuery(toLibraryQueryPatch({ page }));
       grid.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -63,11 +60,16 @@ export function createLibraryPage(): PageComponent {
     children: [content, footer.element],
   });
 
+  function showNotFound(): void {
+    grid.showNotFound();
+    pagination.update({ page: 1, totalPages: 0 });
+  }
+
   async function loadGames(): Promise<void> {
     abortController?.abort();
 
     if (!query.isValid) {
-      grid.showNotFound();
+      showNotFound();
       return;
     }
 
@@ -79,10 +81,12 @@ export function createLibraryPage(): PageComponent {
       const response = await fetchGames(query, controller.signal);
 
       if (response.data.length === 0) {
-        grid.showNotFound();
-      } else {
-        grid.showGames(response.data);
+        showNotFound();
+        return;
       }
+
+      grid.showGames(response.data);
+      pagination.update({ page: response.meta.page, totalPages: response.meta.totalPages });
     } catch (error) {
       if (isAbortError(error)) {
         return;
@@ -109,7 +113,6 @@ export function createLibraryPage(): PageComponent {
       query = nextQuery;
       filter.setActiveCategory(parameters.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
       filter.setActiveSort(query.sort);
-      pagination.setPage(query.page);
       void loadGames();
     },
     destroy: (): void => {
