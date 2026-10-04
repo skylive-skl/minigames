@@ -1,0 +1,43 @@
+.skeleton {
+  display: block;
+  background:
+    linear-gradient(90deg, transparent 0%, var(--color-surface-low) 50%, transparent 100%) no-repeat,
+    var(--color-outline);
+  background-size: 200% 100%;
+  border-radius: var(--corner-small);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &--block {
+    width: 100%;
+    height: 100%;
+  }
+
+  &--text {
+    width: 100%;
+    height: 1em;
+    border-radius: var(--corner-extra-small);
+  }
+
+  &--circle {
+    flex-shrink: 0;
+    border-radius: var(--corner-full);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position:
+      150% 0,
+      0 0;
+  }
+
+  to {
+    background-position:
+      -50% 0,
+      0 0;
+  }
+}
