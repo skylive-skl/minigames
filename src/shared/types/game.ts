@@ -1,5 +1,7 @@
 export type CategorySlug = 'all' | 'puzzle' | 'card' | 'match' | 'farm' | 'strategy' | 'arcade';
 
+export type SortValue = 'rating-desc' | 'rating-asc' | 'name-asc' | 'name-desc';
+
 export interface Category {
   readonly slug: CategorySlug;
   readonly label: string;
