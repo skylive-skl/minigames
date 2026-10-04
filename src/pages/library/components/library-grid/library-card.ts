@@ -1,4 +1,3 @@
-import { categories } from '@/data/categories';
 import { dispatchGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import { formatCompactNumber } from '@/shared/lib/format';
@@ -11,9 +10,7 @@ export function createLibraryCard(game: Game): HTMLElement {
   const isFree = game.price.toLowerCase().includes('free');
   const priceModifier = isFree ? 'library-card__price--free' : 'library-card__price--paid';
 
-  const categoryItem = categories.find((c) => c.slug === game.category);
-  const categoryLabel =
-    categoryItem?.label ?? game.category.charAt(0).toUpperCase() + game.category.slice(1);
+  const categoryLabel = game.category.charAt(0).toUpperCase() + game.category.slice(1);
 
   const image = createElement('img', {
     className: 'library-card__image',

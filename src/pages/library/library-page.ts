@@ -9,7 +9,12 @@ import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createLibraryFilter } from './components/library-filter/library-filter';
 import { createLibraryGrid } from './components/library-grid/library-grid';
 import { createLibraryPagination } from './components/library-pagination/library-pagination';
-import { parseLibraryQuery, toLibraryQueryPatch, type LibraryQuery } from './library-query';
+import {
+  LIBRARY_QUERY_KEYS,
+  parseLibraryQuery,
+  toLibraryQueryPatch,
+  type LibraryQuery,
+} from './library-query';
 import './library-page.scss';
 
 function isSameQuery(a: LibraryQuery, b: LibraryQuery): boolean {
@@ -24,7 +29,13 @@ export function createLibraryPage(): PageComponent {
   let query = parseLibraryQuery(getRouteState().params);
   let abortController: AbortController | undefined;
 
-  const filter = createLibraryFilter();
+  const filter = createLibraryFilter({
+    onCategoryChange: (category) => {
+      // A new filter starts from the first page.
+      updateQuery({ ...toLibraryQueryPatch({ category }), [LIBRARY_QUERY_KEYS.page]: undefined });
+    },
+  });
+  filter.setActiveCategory(getRouteState().params.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
   const grid = createLibraryGrid();
   const pagination = createLibraryPagination({
     initialPage: query.page,
@@ -90,6 +101,7 @@ export function createLibraryPage(): PageComponent {
       }
 
       query = nextQuery;
+      filter.setActiveCategory(parameters.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
       pagination.setPage(query.page);
       void loadGames();
     },

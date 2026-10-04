@@ -1,7 +1,11 @@
-import { categories } from '@/data/categories';
+import { fetchCategories } from '@/shared/api/categories-api';
+import { isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
-import type { CategorySlug } from '@/shared/types/game';
+import type { Category } from '@/shared/types/game';
+import { createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
+import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import './library-filter.scss';
 
 export interface SortOption {
@@ -76,12 +80,25 @@ function enableDragScroll(container: HTMLElement): () => void {
   };
 }
 
+const SKELETON_CHIPS_COUNT = 7;
+
+export interface LibraryFilterOptions {
+  readonly onCategoryChange: (category: string) => void;
+}
+
+export interface LibraryFilterComponent extends Component {
+  // undefined = no category in the URL: highlight the API's default chip.
+  readonly setActiveCategory: (category: string | undefined) => void;
+}
+
 function getSortDisplayText(label: string): string {
   return `Sort by: ${label} ↓`;
 }
 
-export function createLibraryFilter(): Component {
-  let activeCategory: CategorySlug = 'all';
+export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilterComponent {
+  let requestedCategory: string | undefined;
+  let categories: readonly Category[] = [];
+  let abortController: AbortController | undefined;
   let activeSortId = SORT_OPTIONS[0]?.id ?? 'rating';
   let isSortOpen = false;
 
@@ -100,41 +117,21 @@ export function createLibraryFilter(): Component {
     children: [heading, subtitle],
   });
 
-  const chipButtons: { button: HTMLButtonElement; slug: CategorySlug }[] = [];
+  const chipButtons: { button: HTMLButtonElement; slug: string }[] = [];
 
-  const updateActiveChip = (slug: CategorySlug): void => {
-    activeCategory = slug;
+  function getActiveSlug(): string | undefined {
+    return requestedCategory ?? categories.find((category) => category.isDefault)?.slug;
+  }
+
+  function updateActiveChip(): void {
+    const activeSlug = getActiveSlug();
+
     for (const item of chipButtons) {
-      const isActive = item.slug === activeCategory;
+      const isActive = item.slug === activeSlug;
       item.button.classList.toggle('library-filter__chip--active', isActive);
-      if (isActive) {
-        item.button.setAttribute('aria-selected', 'true');
-      } else if (item.button.hasAttribute('aria-selected')) {
-        item.button.removeAttribute('aria-selected');
-      }
+      item.button.setAttribute('aria-selected', String(isActive));
     }
-  };
-
-  const chips = categories.map((cat) => {
-    const isInitial = cat.slug === activeCategory;
-    const button = createElement('button', {
-      className: isInitial
-        ? 'library-filter__chip library-filter__chip--active'
-        : 'library-filter__chip',
-      text: cat.label,
-      attributes: {
-        type: 'button',
-        role: 'tab',
-        ...(isInitial && { 'aria-selected': 'true' }),
-      },
-      onClick: () => {
-        updateActiveChip(cat.slug);
-      },
-    });
-
-    chipButtons.push({ button, slug: cat.slug });
-    return button;
-  });
+  }
 
   const chipsContainer = createElement('div', {
     className: 'library-filter__chips-container',
@@ -142,8 +139,76 @@ export function createLibraryFilter(): Component {
       role: 'tablist',
       'aria-label': 'Filter by category',
     },
-    children: chips,
   });
+
+  const chipsStatus = createElement('div', { className: 'library-filter__chips-status' });
+
+  function renderChips(): void {
+    chipButtons.length = 0;
+
+    const chips = categories.map((category) => {
+      const button = createElement('button', {
+        className: 'library-filter__chip',
+        text: category.label,
+        attributes: { type: 'button', role: 'tab' },
+        onClick: () => {
+          if (category.slug !== getActiveSlug()) {
+            options.onCategoryChange(category.slug);
+          }
+        },
+      });
+
+      chipButtons.push({ button, slug: category.slug });
+      return button;
+    });
+
+    chipsContainer.replaceChildren(...chips);
+    updateActiveChip();
+  }
+
+  function showChipsLoading(): void {
+    chipsStatus.replaceChildren();
+    chipsContainer.replaceChildren(
+      ...createSkeletonList(SKELETON_CHIPS_COUNT, () =>
+        createSkeleton({ className: 'library-filter__chip-skeleton' }),
+      ),
+    );
+    setBusy(chipsContainer, true);
+  }
+
+  function showChipsError(message: string): void {
+    chipsContainer.replaceChildren();
+    chipsStatus.replaceChildren(
+      createErrorBanner({
+        title: 'Could not load categories',
+        message,
+        onRetry: () => {
+          void loadCategories();
+        },
+      }),
+    );
+    showSnackbar({ message: 'Failed to load categories.', variant: 'error' });
+  }
+
+  async function loadCategories(): Promise<void> {
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+
+    showChipsLoading();
+
+    try {
+      categories = await fetchCategories(controller.signal);
+      setBusy(chipsContainer, false);
+      renderChips();
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      setBusy(chipsContainer, false);
+      showChipsError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
 
   const cleanupDrag = enableDragScroll(chipsContainer);
 
@@ -265,7 +330,7 @@ export function createLibraryFilter(): Component {
 
   const container = createElement('div', {
     className: 'library-filter__container',
-    children: [header, toolbar],
+    children: [header, toolbar, chipsStatus],
   });
 
   const element = createElement('section', {
@@ -274,9 +339,16 @@ export function createLibraryFilter(): Component {
     children: [container],
   });
 
+  void loadCategories();
+
   return {
     element,
+    setActiveCategory: (category: string | undefined): void => {
+      requestedCategory = category;
+      updateActiveChip();
+    },
     destroy: (): void => {
+      abortController?.abort();
       cleanupDrag();
       document.removeEventListener('click', onDocumentClick);
       document.removeEventListener('keydown', onDocumentKeyDown);
