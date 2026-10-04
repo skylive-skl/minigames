@@ -1,7 +1,6 @@
+import { BASE_PATH, buildHref } from './paths';
 import { DEFAULT_ROUTE, ROUTE_PATHS, routes, type PageComponent, type RouteName } from './routes';
 
-// Vite exposes the deploy base ("/minigames/"); every app URL lives under it.
-const BASE_PATH = import.meta.env.BASE_URL;
 const LOCATION_CHANGE_EVENT = 'minigames:location-change';
 const LEGACY_HASH_PREFIX = '#/';
 const EDGE_SLASHES_PATTERN = /^\/+|\/+$/gu;
@@ -50,11 +49,6 @@ export function getRouteState(): RouteState {
 
 export function getCurrentRoute(): RouteName {
   return getRouteState().name;
-}
-
-// "/library?page=2" -> "/minigames/library?page=2"
-export function buildHref(to: string): string {
-  return `${BASE_PATH}${to.replace(/^\/+/u, '')}`;
 }
 
 export function navigate(to: string, options: NavigateOptions = {}): void {

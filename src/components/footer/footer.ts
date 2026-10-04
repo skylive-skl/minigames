@@ -1,3 +1,4 @@
+import { HOME_HREF, LIBRARY_HREF } from '@/app/paths';
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
 import { createElement } from '@/shared/lib/dom';
 import {
@@ -9,8 +10,6 @@ import {
 import type { Component } from '@/shared/types/component';
 import './footer.scss';
 
-const HOME_HREF = '#/home';
-const LIBRARY_HREF = '#/library';
 const RS_SCHOOL_HREF = 'https://rs.school/courses/short-track';
 const GITHUB_HREF = 'https://github.com/skylive-skl';
 const GITHUB_HANDLE = '@skylive-skl';

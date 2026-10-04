@@ -1,3 +1,4 @@
+import { HOME_HREF } from '@/app/paths';
 import { AUTH_DIALOG_OPEN_EVENT } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import {
@@ -216,7 +217,7 @@ function createLoginForm(onSwitchToRegister: () => void): HTMLElement {
   const forgotLink = createElement('a', {
     className: 'auth-dialog__forgot',
     text: 'Forgot Password?',
-    attributes: { href: '#/home' },
+    attributes: { href: HOME_HREF },
   });
 
   const submitButton = createElement('button', {

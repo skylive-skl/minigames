@@ -1,3 +1,4 @@
+import { HOME_HREF, LIBRARY_HREF } from '@/app/paths';
 import { getCurrentRoute, onRouteChange } from '@/app/router';
 import type { RouteName } from '@/app/routes';
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
@@ -7,9 +8,6 @@ import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
 import './header.scss';
-
-const HOME_HREF = '#/home';
-const LIBRARY_HREF = '#/library';
 
 interface NavItemConfig {
   readonly label: string;
