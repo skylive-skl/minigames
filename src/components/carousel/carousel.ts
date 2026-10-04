@@ -1,9 +1,13 @@
-import allGamesSeed from '@/shared/data/all-games-seed.json';
+import { fetchFeaturedGames } from '@/shared/api/games-api';
+import { isAbortError } from '@/shared/api/http';
 import { dispatchGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { Game } from '@/shared/types/game';
+import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
 import { createArrowIcon } from '@/shared/ui/icon/icon';
+import { createSkeleton, setBusy } from '@/shared/ui/skeleton/skeleton';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameCard, type CardPosition } from './game-card';
 import './carousel.scss';
 
@@ -26,10 +30,7 @@ const SLOTS: readonly SlotConfig[] = [
   { offset: 3, positionClass: 'carousel__item--outer-right', cardPosition: 'outer' },
 ];
 
-const featuredGames: readonly Game[] = (allGamesSeed.data as Game[]).filter(
-  (game) => game.featured,
-);
-const totalGames = featuredGames.length;
+const MIN_GAMES_TO_SLIDE = 2;
 
 function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
   return createElement('button', {
@@ -42,7 +43,23 @@ function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
   });
 }
 
+function createSkeletonTrackItems(): HTMLLIElement[] {
+  return SLOTS.map((slot) =>
+    createElement('li', {
+      className: `carousel__item ${slot.positionClass}`,
+      children: [
+        createElement('div', {
+          className: `game-card game-card--${slot.cardPosition} game-card--skeleton`,
+          children: [createSkeleton({ className: 'game-card__skeleton' })],
+        }),
+      ],
+    }),
+  );
+}
+
 export function createCarousel(): Component {
+  let games: readonly Game[] = [];
+  let abortController: AbortController | undefined;
   let centerIndex = 0;
   let isAnimating = false;
   let safetyTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
@@ -88,25 +105,45 @@ export function createCarousel(): Component {
     children: [track],
   });
 
+  const content = createElement('div', {
+    className: 'carousel__content',
+    children: [trackViewport],
+  });
+
   const element = createElement('section', {
     className: 'carousel',
     attributes: { 'aria-label': 'New Games' },
-    children: [header, trackViewport],
+    children: [header, content],
   });
 
-  function handleCardClick(): void {
+  function canSlide(): boolean {
+    return games.length >= MIN_GAMES_TO_SLIDE;
+  }
+
+  function updateArrows(): void {
+    const isDisabled = !canSlide();
+    leftArrow.disabled = isDisabled;
+    rightArrow.disabled = isDisabled;
+  }
+
+  function handleCardClick(slug: string): void {
     if (hasMovedPointer) {
       return;
     }
-    dispatchGameDetailsOpen();
+    dispatchGameDetailsOpen(slug);
   }
 
   function renderTrack(): void {
+    if (games.length === 0) {
+      track.replaceChildren();
+      return;
+    }
+
     const items = SLOTS.map((slot) => {
-      const gameIndex = (centerIndex + slot.offset + totalGames * 10) % totalGames;
-      const game = featuredGames[gameIndex];
+      const gameIndex = (centerIndex + slot.offset + games.length * SLOTS.length) % games.length;
+      const game = games[gameIndex];
       const card = createGameCard(game, slot.cardPosition, () => {
-        handleCardClick();
+        handleCardClick(game.slug);
       });
 
       return createElement('li', {
@@ -138,7 +175,7 @@ export function createCarousel(): Component {
   }
 
   function slide(direction: 'next' | 'prev'): void {
-    if (isAnimating) {
+    if (isAnimating || !canSlide()) {
       return;
     }
     isAnimating = true;
@@ -158,7 +195,7 @@ export function createCarousel(): Component {
         safetyTimer = undefined;
       }
 
-      centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + totalGames) % totalGames;
+      centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + games.length) % games.length;
 
       track.classList.remove('carousel__track--animating', animationClass);
       track.style.transition = 'none';
@@ -182,6 +219,9 @@ export function createCarousel(): Component {
 
   function scheduleAutoplay(delayMs: number): void {
     clearAutoplayTimer();
+    if (!canSlide()) {
+      return;
+    }
     autoplayStartTime = Date.now();
     autoplayTimeoutId = globalThis.setTimeout(() => {
       slide('next');
@@ -306,12 +346,76 @@ export function createCarousel(): Component {
   trackViewport.addEventListener('pointerup', handlePointerEnd);
   trackViewport.addEventListener('pointercancel', handlePointerEnd);
 
-  renderTrack();
-  scheduleAutoplay(AUTOPLAY_INTERVAL);
+  function setGames(nextGames: readonly Game[]): void {
+    games = nextGames;
+    centerIndex = 0;
+    renderTrack();
+    updateArrows();
+    resetAutoplay();
+  }
+
+  function showLoading(): void {
+    setGames([]);
+    track.replaceChildren(...createSkeletonTrackItems());
+    content.replaceChildren(trackViewport);
+    setBusy(content, true);
+  }
+
+  function showGames(nextGames: readonly Game[]): void {
+    setBusy(content, false);
+
+    if (nextGames.length === 0) {
+      setGames([]);
+      content.replaceChildren(
+        createEmptyState({
+          title: 'No new games yet',
+          message: 'Featured games will appear here soon.',
+        }),
+      );
+      return;
+    }
+
+    content.replaceChildren(trackViewport);
+    setGames(nextGames);
+  }
+
+  function showError(message: string): void {
+    setBusy(content, false);
+    content.replaceChildren(
+      createErrorBanner({
+        title: 'Could not load new games',
+        message,
+        onRetry: () => {
+          void load();
+        },
+      }),
+    );
+    showSnackbar({ message: 'Failed to load featured games.', variant: 'error' });
+  }
+
+  async function load(): Promise<void> {
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+
+    showLoading();
+
+    try {
+      showGames(await fetchFeaturedGames(controller.signal));
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      showError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  void load();
 
   return {
     element,
     destroy: (): void => {
+      abortController?.abort();
       clearAutoplayTimer();
       if (safetyTimer !== undefined) {
         globalThis.clearTimeout(safetyTimer);

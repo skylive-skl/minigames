@@ -1,4 +1,5 @@
-import leaderboardSeed from '@/shared/data/leaderboard.json';
+import { isAbortError } from '@/shared/api/http';
+import { fetchLeaderboard } from '@/shared/api/leaderboard-api';
 import { createElement } from '@/shared/lib/dom';
 import {
   formatCompactNumber,
@@ -8,9 +9,14 @@ import {
 } from '@/shared/lib/format';
 import type { Component } from '@/shared/types/component';
 import type { LeaderboardEntry } from '@/shared/types/player';
+import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
+import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import './leaderboard.scss';
 
 const NAME_WORD_PATTERN = /[A-Z][a-z0-9]*/gu;
+const SKELETON_ROWS_COUNT = 5;
+const VISIBLE_ROWS_ON_TABLET = 3;
 
 function getInitials(playerName: string): string {
   const words = playerName.match(NAME_WORD_PATTERN) ?? [];
@@ -28,6 +34,12 @@ function createDualValue(fullText: string, compactText: string): HTMLElement {
       createElement('span', { className: 'leaderboard__value--compact', text: compactText }),
     ],
   });
+}
+
+function getRowClassName(position: number): string {
+  return position > VISIBLE_ROWS_ON_TABLET
+    ? 'leaderboard__row leaderboard__row--extra'
+    : 'leaderboard__row';
 }
 
 function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
@@ -86,12 +98,39 @@ function createRow(entry: LeaderboardEntry): HTMLTableRowElement {
     children: [favoriteChip],
   });
 
-  const rowClassName =
-    entry.rank > 3 ? 'leaderboard__row leaderboard__row--extra' : 'leaderboard__row';
+  const rowClassName = getRowClassName(entry.rank);
 
   return createElement('tr', {
     className: rowClassName,
     children: [rankCell, playerCell, gamesCell, scoreCell, streakCell, favoriteCell],
+  });
+}
+
+function createSkeletonCell(modifier: string, content: HTMLElement[]): HTMLTableCellElement {
+  return createElement('td', {
+    className: `leaderboard__cell leaderboard__cell--${modifier}`,
+    children: content,
+  });
+}
+
+function createSkeletonText(): HTMLElement {
+  return createSkeleton({ shape: 'text', className: 'leaderboard__skeleton-text' });
+}
+
+function createSkeletonRow(position: number): HTMLTableRowElement {
+  return createElement('tr', {
+    className: getRowClassName(position),
+    children: [
+      createSkeletonCell('rank', [createSkeletonText()]),
+      createSkeletonCell('player', [
+        createSkeleton({ shape: 'circle', className: 'leaderboard__avatar-skeleton' }),
+        createSkeletonText(),
+      ]),
+      createSkeletonCell('games', [createSkeletonText()]),
+      createSkeletonCell('score', [createSkeletonText()]),
+      createSkeletonCell('streak', [createSkeletonText()]),
+      createSkeletonCell('favorite', [createSkeletonText()]),
+    ],
   });
 }
 
@@ -116,7 +155,7 @@ function createResponsiveHeaderCell(
 }
 
 export function createLeaderboard(): Component {
-  const entries = leaderboardSeed.data as LeaderboardEntry[];
+  let abortController: AbortController | undefined;
 
   const accent = createElement('span', {
     className: 'leaderboard__accent',
@@ -147,19 +186,88 @@ export function createLeaderboard(): Component {
     ],
   });
   const thead = createElement('thead', { children: [headRow] });
-
-  const tbody = createElement('tbody', { children: entries.map((entry) => createRow(entry)) });
+  const tbody = createElement('tbody');
 
   const table = createElement('table', {
     className: 'leaderboard__table',
     children: [caption, thead, tbody],
   });
 
+  const content = createElement('div', { className: 'leaderboard__content' });
+
   const element = createElement('section', {
     className: 'leaderboard',
     attributes: { 'aria-label': 'Top Players This Week' },
-    children: [header, table],
+    children: [header, content],
   });
 
-  return { element };
+  function showLoading(): void {
+    let position = 0;
+    tbody.replaceChildren(
+      ...createSkeletonList(SKELETON_ROWS_COUNT, () => {
+        position += 1;
+        return createSkeletonRow(position);
+      }),
+    );
+    content.replaceChildren(table);
+    setBusy(content, true);
+  }
+
+  function showEntries(entries: readonly LeaderboardEntry[]): void {
+    setBusy(content, false);
+
+    if (entries.length === 0) {
+      content.replaceChildren(
+        createEmptyState({
+          title: 'No players yet',
+          message: 'The leaderboard is empty this week. Play a game to get on it!',
+        }),
+      );
+      return;
+    }
+
+    tbody.replaceChildren(...entries.map((entry) => createRow(entry)));
+    content.replaceChildren(table);
+  }
+
+  function showError(message: string): void {
+    setBusy(content, false);
+    content.replaceChildren(
+      createErrorBanner({
+        title: 'Could not load the leaderboard',
+        message,
+        onRetry: () => {
+          void load();
+        },
+      }),
+    );
+    showSnackbar({ message: 'Failed to load the leaderboard.', variant: 'error' });
+  }
+
+  async function load(): Promise<void> {
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+
+    showLoading();
+
+    try {
+      const entries = await fetchLeaderboard(controller.signal);
+      showEntries(entries);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      showError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  void load();
+
+  return {
+    element,
+    destroy: (): void => {
+      abortController?.abort();
+    },
+  };
 }
