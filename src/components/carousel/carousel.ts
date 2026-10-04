@@ -1,4 +1,3 @@
-import allGamesSeed from '@/shared/data/all-games-seed.json';
 import { dispatchGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
@@ -26,10 +25,7 @@ const SLOTS: readonly SlotConfig[] = [
   { offset: 3, positionClass: 'carousel__item--outer-right', cardPosition: 'outer' },
 ];
 
-const featuredGames: readonly Game[] = (allGamesSeed.data as Game[]).filter(
-  (game) => game.featured,
-);
-const totalGames = featuredGames.length;
+const MIN_GAMES_TO_SLIDE = 2;
 
 function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
   return createElement('button', {
@@ -42,7 +38,12 @@ function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
   });
 }
 
-export function createCarousel(): Component {
+export interface CarouselComponent extends Component {
+  readonly setGames: (games: readonly Game[]) => void;
+}
+
+export function createCarousel(): CarouselComponent {
+  let games: readonly Game[] = [];
   let centerIndex = 0;
   let isAnimating = false;
   let safetyTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
@@ -94,19 +95,34 @@ export function createCarousel(): Component {
     children: [header, trackViewport],
   });
 
-  function handleCardClick(): void {
+  function canSlide(): boolean {
+    return games.length >= MIN_GAMES_TO_SLIDE;
+  }
+
+  function updateArrows(): void {
+    const isDisabled = !canSlide();
+    leftArrow.disabled = isDisabled;
+    rightArrow.disabled = isDisabled;
+  }
+
+  function handleCardClick(slug: string): void {
     if (hasMovedPointer) {
       return;
     }
-    dispatchGameDetailsOpen();
+    dispatchGameDetailsOpen(slug);
   }
 
   function renderTrack(): void {
+    if (games.length === 0) {
+      track.replaceChildren();
+      return;
+    }
+
     const items = SLOTS.map((slot) => {
-      const gameIndex = (centerIndex + slot.offset + totalGames * 10) % totalGames;
-      const game = featuredGames[gameIndex];
+      const gameIndex = (centerIndex + slot.offset + games.length * SLOTS.length) % games.length;
+      const game = games[gameIndex];
       const card = createGameCard(game, slot.cardPosition, () => {
-        handleCardClick();
+        handleCardClick(game.slug);
       });
 
       return createElement('li', {
@@ -138,7 +154,7 @@ export function createCarousel(): Component {
   }
 
   function slide(direction: 'next' | 'prev'): void {
-    if (isAnimating) {
+    if (isAnimating || !canSlide()) {
       return;
     }
     isAnimating = true;
@@ -158,7 +174,7 @@ export function createCarousel(): Component {
         safetyTimer = undefined;
       }
 
-      centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + totalGames) % totalGames;
+      centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + games.length) % games.length;
 
       track.classList.remove('carousel__track--animating', animationClass);
       track.style.transition = 'none';
@@ -182,6 +198,9 @@ export function createCarousel(): Component {
 
   function scheduleAutoplay(delayMs: number): void {
     clearAutoplayTimer();
+    if (!canSlide()) {
+      return;
+    }
     autoplayStartTime = Date.now();
     autoplayTimeoutId = globalThis.setTimeout(() => {
       slide('next');
@@ -306,11 +325,19 @@ export function createCarousel(): Component {
   trackViewport.addEventListener('pointerup', handlePointerEnd);
   trackViewport.addEventListener('pointercancel', handlePointerEnd);
 
-  renderTrack();
-  scheduleAutoplay(AUTOPLAY_INTERVAL);
+  function setGames(nextGames: readonly Game[]): void {
+    games = nextGames;
+    centerIndex = 0;
+    renderTrack();
+    updateArrows();
+    resetAutoplay();
+  }
+
+  updateArrows();
 
   return {
     element,
+    setGames,
     destroy: (): void => {
       clearAutoplayTimer();
       if (safetyTimer !== undefined) {

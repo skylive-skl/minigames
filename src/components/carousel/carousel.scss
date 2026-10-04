@@ -64,15 +64,20 @@
     background-color 0.15s ease,
     box-shadow 0.15s ease;
 
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: var(--color-surface);
       box-shadow: var(--shadow-hard-md);
       transform: translateY(-1px);
     }
   }
 
-  &:active {
+  &:active:not(:disabled) {
     box-shadow: var(--shadow-hard-sm);
     transform: translateY(1px);
   }
@@ -86,7 +91,7 @@
     background-color: var(--color-primary);
 
     @media (hover: hover) {
-      &:hover {
+      &:hover:not(:disabled) {
         background-color: var(--color-primary-low);
       }
     }
