@@ -1,11 +1,11 @@
-import type { CategorySlug, Game, GameDetails, SortValue } from '@/shared/types/game';
+import type { Game, GameDetails, SortValue } from '@/shared/types/game';
 import { apiGet } from './http';
 import type { ApiListResponse, ApiResponse, GamesListMeta } from './types';
 
 export const LIBRARY_PAGE_SIZE = 6;
 
 export interface GamesQuery {
-  readonly category: CategorySlug;
+  readonly category: string;
   readonly sort: SortValue;
   readonly page: number;
 }

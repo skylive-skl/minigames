@@ -11,7 +11,8 @@ export interface RouteState {
   readonly params: URLSearchParams;
 }
 
-export type QueryPatch = Readonly<Record<string, string | number | null>>;
+// An undefined value removes the key from the URL.
+export type QueryPatch = Readonly<Record<string, string | number | undefined>>;
 
 export interface NavigateOptions {
   readonly replace?: boolean;
@@ -72,7 +73,7 @@ export function updateQuery(patch: QueryPatch, options: NavigateOptions = {}): v
   const { path, params } = getRouteState();
 
   for (const [key, value] of Object.entries(patch)) {
-    if (value === null) {
+    if (value === undefined) {
       params.delete(key);
     } else {
       params.set(key, String(value));

@@ -299,3 +299,28 @@
     }
   }
 }
+
+.library-card--skeleton {
+  pointer-events: none;
+  border-color: var(--color-outline-variant);
+  box-shadow: none;
+}
+
+.library-card__skeleton-body {
+  gap: var(--size-1);
+}
+
+.library-card__skeleton-title {
+  width: 50%;
+  height: var(--size-3);
+}
+
+.library-card__skeleton-line {
+  width: 90%;
+}
+
+.library-card__skeleton-footer {
+  width: 35%;
+  height: var(--size-4);
+  margin-top: auto;
+}
