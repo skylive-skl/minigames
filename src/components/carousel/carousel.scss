@@ -264,6 +264,17 @@
   }
 }
 
+.game-card--skeleton {
+  pointer-events: none;
+  cursor: default;
+  border-color: var(--color-outline-variant);
+  box-shadow: none;
+}
+
+.game-card__skeleton {
+  border-radius: 0;
+}
+
 .game-card__image {
   display: block;
   width: 100%;
