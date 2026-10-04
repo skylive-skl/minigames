@@ -1,5 +1,5 @@
 import { BASE_PATH, buildHref } from './paths';
-import { DEFAULT_ROUTE, ROUTE_PATHS, routes, type PageComponent, type RouteName } from './routes';
+import { FALLBACK_ROUTE, ROUTE_PATHS, routes, type PageComponent, type RouteName } from './routes';
 
 const LOCATION_CHANGE_EVENT = 'minigames:location-change';
 const LEGACY_HASH_PREFIX = '#/';
@@ -34,7 +34,7 @@ function stripBasePath(pathname: string): string {
 
 export function resolveRoute(path: string): RouteName {
   const key = normalizePath(path);
-  return Object.hasOwn(ROUTE_PATHS, key) ? (ROUTE_PATHS[key] ?? DEFAULT_ROUTE) : DEFAULT_ROUTE;
+  return Object.hasOwn(ROUTE_PATHS, key) ? (ROUTE_PATHS[key] ?? FALLBACK_ROUTE) : FALLBACK_ROUTE;
 }
 
 export function getRouteState(): RouteState {
@@ -162,17 +162,18 @@ export interface Router {
 
 export function createRouter(outlet: HTMLElement): Router {
   let current: PageComponent | undefined;
-  let currentName: RouteName | undefined;
+  let currentPath: string | undefined;
 
   function render(): void {
     const state = getRouteState();
 
-    if (current !== undefined && state.name === currentName) {
+    // Same path = same page instance; only the query changed.
+    if (current !== undefined && state.path === currentPath) {
       current.onQueryChange?.(state.params);
     } else {
       current?.destroy?.();
       current = routes[state.name]();
-      currentName = state.name;
+      currentPath = state.path;
       outlet.replaceChildren(current.element);
       globalThis.scrollTo({ top: 0 });
     }
