@@ -229,8 +229,8 @@ export function createBurgerMenu(): Component {
     }
   });
 
-  const unsubscribeRoute = onRouteChange((route) => {
-    updateActive(route);
+  const unsubscribeRoute = onRouteChange((state) => {
+    updateActive(state.name);
   });
 
   if (isBurgerMenuOpen()) {

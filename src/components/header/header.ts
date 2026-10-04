@@ -150,8 +150,8 @@ export function createHeader(): Component {
     children: [createLogo(), nav.element, actions],
   });
 
-  const unsubscribeRoute = onRouteChange((route) => {
-    nav.updateActive(route);
+  const unsubscribeRoute = onRouteChange((state) => {
+    nav.updateActive(state.name);
   });
 
   const element = createElement('header', { className: 'header', children: [inner] });
