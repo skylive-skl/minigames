@@ -29,10 +29,16 @@ export function createLibraryPage(): PageComponent {
   let query = parseLibraryQuery(getRouteState().params);
   let abortController: AbortController | undefined;
 
+  // A new filter or sort order always starts from the first page.
+  const resetPagePatch = { [LIBRARY_QUERY_KEYS.page]: undefined };
+
   const filter = createLibraryFilter({
+    initialSort: query.sort,
     onCategoryChange: (category) => {
-      // A new filter starts from the first page.
-      updateQuery({ ...toLibraryQueryPatch({ category }), [LIBRARY_QUERY_KEYS.page]: undefined });
+      updateQuery({ ...toLibraryQueryPatch({ category }), ...resetPagePatch });
+    },
+    onSortChange: (sort) => {
+      updateQuery({ ...toLibraryQueryPatch({ sort }), ...resetPagePatch });
     },
   });
   filter.setActiveCategory(getRouteState().params.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
@@ -102,6 +108,7 @@ export function createLibraryPage(): PageComponent {
 
       query = nextQuery;
       filter.setActiveCategory(parameters.get(LIBRARY_QUERY_KEYS.category) ?? undefined);
+      filter.setActiveSort(query.sort);
       pagination.setPage(query.page);
       void loadGames();
     },

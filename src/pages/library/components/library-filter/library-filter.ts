@@ -2,21 +2,23 @@ import { fetchCategories } from '@/shared/api/categories-api';
 import { isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
-import type { Category } from '@/shared/types/game';
+import type { Category, SortValue } from '@/shared/types/game';
 import { createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
 import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import './library-filter.scss';
 
 export interface SortOption {
-  readonly id: string;
+  readonly value: SortValue;
   readonly label: string;
 }
 
+// Values are the API's `sort` parameter; the order matches the dropdown.
 export const SORT_OPTIONS: readonly SortOption[] = [
-  { id: 'rating', label: 'Rating' },
-  { id: 'popular', label: 'Popular' },
-  { id: 'newest', label: 'Newest' },
+  { value: 'rating-desc', label: 'Rating ↓' },
+  { value: 'rating-asc', label: 'Rating ↑' },
+  { value: 'name-asc', label: 'Name A–Z' },
+  { value: 'name-desc', label: 'Name Z–A' },
 ];
 
 function enableDragScroll(container: HTMLElement): () => void {
@@ -83,23 +85,27 @@ function enableDragScroll(container: HTMLElement): () => void {
 const SKELETON_CHIPS_COUNT = 7;
 
 export interface LibraryFilterOptions {
+  readonly initialSort: SortValue;
   readonly onCategoryChange: (category: string) => void;
+  readonly onSortChange: (sort: SortValue) => void;
 }
 
 export interface LibraryFilterComponent extends Component {
   // undefined = no category in the URL: highlight the API's default chip.
   readonly setActiveCategory: (category: string | undefined) => void;
+  readonly setActiveSort: (sort: SortValue) => void;
 }
 
-function getSortDisplayText(label: string): string {
-  return `Sort by: ${label} ↓`;
+function getSortDisplayText(sort: SortValue): string {
+  const option = SORT_OPTIONS.find((item) => item.value === sort);
+  return `Sort by: ${option?.label ?? sort}`;
 }
 
 export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilterComponent {
   let requestedCategory: string | undefined;
   let categories: readonly Category[] = [];
   let abortController: AbortController | undefined;
-  let activeSortId = SORT_OPTIONS[0]?.id ?? 'rating';
+  let activeSort = options.initialSort;
   let isSortOpen = false;
 
   const heading = createElement('h1', {
@@ -214,7 +220,7 @@ export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilte
 
   const sortLabel = createElement('span', {
     className: 'library-filter__sort-label',
-    text: getSortDisplayText(SORT_OPTIONS[0]?.label ?? 'Rating'),
+    text: getSortDisplayText(activeSort),
   });
 
   const sortButton = createElement('button', {
@@ -250,19 +256,27 @@ export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilte
     }
   };
 
-  const selectSort = (option: SortOption): void => {
-    activeSortId = option.id;
-    sortLabel.textContent = getSortDisplayText(option.label);
+  const updateSortUi = (sort: SortValue): void => {
+    activeSort = sort;
+    sortLabel.textContent = getSortDisplayText(sort);
     for (const entry of sortOptionItems) {
-      const isSelected = entry.option.id === activeSortId;
+      const isSelected = entry.option.value === activeSort;
       entry.item.classList.toggle('library-filter__sort-option--active', isSelected);
       entry.item.setAttribute('aria-selected', String(isSelected));
     }
+  };
+
+  // The URL owns the sort value: the dropdown only reports the choice and is
+  // re-synced through setActiveSort once the URL changes.
+  const selectSort = (option: SortOption): void => {
     closeSort();
+    if (option.value !== activeSort) {
+      options.onSortChange(option.value);
+    }
   };
 
   const sortOptions = SORT_OPTIONS.map((opt) => {
-    const isSelected = opt.id === activeSortId;
+    const isSelected = opt.value === activeSort;
     const item = createElement('li', {
       className: isSelected
         ? 'library-filter__sort-option library-filter__sort-option--active'
@@ -347,6 +361,7 @@ export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilte
       requestedCategory = category;
       updateActiveChip();
     },
+    setActiveSort: updateSortUi,
     destroy: (): void => {
       abortController?.abort();
       cleanupDrag();
