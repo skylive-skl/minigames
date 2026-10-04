@@ -3,6 +3,7 @@ import { tukoniGameDetails } from '@/data/game-tukoni';
 import { onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
+import type { GameDetails } from '@/shared/types/game';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
 import { createGameDetailsComments } from './game-details-comments';
 import { createGameDetailsHero } from './game-details-hero';
@@ -47,19 +48,19 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     },
   });
 
-  const hero = createGameDetailsHero({ title: tukoniGameDetails.name, closeButton });
-  const info = createGameDetailsInfo(tukoniGameDetails);
-  const records = createGameDetailsRecords(tukoniGameDetails.topRecords);
+  const hero = createGameDetailsHero({ closeButton });
+  const info = createGameDetailsInfo();
+  const records = createGameDetailsRecords();
   const comments = createGameDetailsComments(tukoniComments);
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
-    children: [info.element, records, comments.element],
+    children: [info.element, records.element, comments.element],
   });
 
   const panel = createElement('div', {
     className: 'game-details-dialog__panel',
-    children: [hero, body],
+    children: [hero.element, body],
   });
 
   const dialog = createElement('dialog', {
@@ -101,7 +102,14 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
     }
   }
 
+  function renderDetails(details: GameDetails): void {
+    hero.update(details);
+    info.update(details);
+    records.update(details.topRecords);
+  }
+
   const openDialog = (): void => {
+    renderDetails(tukoniGameDetails);
     lastFocusedElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
 
