@@ -1,11 +1,17 @@
-import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
+import { createAuthDialog, isDialogMode } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
-import { onGameDetailsOpen } from '@/shared/lib/app-events';
+import { onAuthDialogOpen, onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
-import { closeDialogInUrl, GAME_QUERY_KEY, openDialogInUrl } from './dialog-history';
-import { createRouter, onRouteChange, type RouteState } from './router';
+import {
+  AUTH_QUERY_KEY,
+  closeDialogInUrl,
+  GAME_QUERY_KEY,
+  openDialogInUrl,
+  replaceDialogInUrl,
+} from './dialog-history';
+import { createRouter, onRouteChange, updateQuery, type RouteState } from './router';
 
 export interface App {
   readonly element: HTMLElement;
@@ -16,7 +22,14 @@ export interface App {
 export function createApp(): App {
   const header = createHeader();
   const burgerMenu = createBurgerMenu();
-  const authDialog = createAuthDialog();
+  const authDialog = createAuthDialog({
+    onClose: () => {
+      closeDialogInUrl(AUTH_QUERY_KEY);
+    },
+    onModeChange: (mode) => {
+      replaceDialogInUrl(AUTH_QUERY_KEY, mode);
+    },
+  });
   const gameDetailsDialog = createGameDetailsDialog({
     onClose: () => {
       closeDialogInUrl(GAME_QUERY_KEY);
@@ -51,7 +64,27 @@ export function createApp(): App {
     }
   }
 
-  onRouteChange(syncGameDetailsDialog);
+  onAuthDialogOpen((mode) => {
+    openDialogInUrl(AUTH_QUERY_KEY, mode);
+  });
+
+  function syncAuthDialog(state: RouteState): void {
+    const mode = state.params.get(AUTH_QUERY_KEY);
+
+    if (mode === null) {
+      authDialog.close();
+    } else if (isDialogMode(mode)) {
+      authDialog.open(mode);
+    } else {
+      // Unknown value (e.g. ?auth=foo): drop it so the URL stays truthful.
+      updateQuery({ [AUTH_QUERY_KEY]: undefined }, { replace: true });
+    }
+  }
+
+  onRouteChange((state) => {
+    syncGameDetailsDialog(state);
+    syncAuthDialog(state);
+  });
 
   return {
     element,
