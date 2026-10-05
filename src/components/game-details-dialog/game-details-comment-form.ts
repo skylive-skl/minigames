@@ -2,6 +2,7 @@ import { createElement } from '@/shared/lib/dom';
 import { createSendIcon } from '@/shared/ui/icon/icon';
 
 const MAX_TEXTAREA_HEIGHT = 88;
+const GUEST_PLACEHOLDER = 'Log in to write a comment';
 
 export interface CommentFormController {
   readonly element: HTMLElement;
@@ -13,10 +14,12 @@ export function createCommentForm(): CommentFormController {
     className: 'game-details-dialog__comment-input',
     attributes: {
       rows: '1',
-      placeholder: 'Write a comment...',
+      placeholder: GUEST_PLACEHOLDER,
       'aria-label': 'Write a comment',
     },
   });
+  // Posting comments requires auth, which arrives in Story 4.
+  textarea.disabled = true;
 
   function adjustTextareaHeight(): void {
     textarea.style.height = 'auto';
@@ -44,6 +47,7 @@ export function createCommentForm(): CommentFormController {
     attributes: { type: 'submit', 'aria-label': 'Submit comment' },
     children: [createSendIcon()],
   });
+  submitButton.disabled = true;
 
   const form = createElement('form', {
     className: 'game-details-dialog__comment-form',
@@ -53,7 +57,7 @@ export function createCommentForm(): CommentFormController {
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    // Submission is intentionally a no-op per Story 2 requirements
+    // Read-only in Story 3: posting comments is implemented with auth in Story 4.
   });
 
   return {

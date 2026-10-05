@@ -1,18 +1,24 @@
-import { categories } from '@/data/categories';
+import { fetchCategories } from '@/shared/api/categories-api';
+import { isAbortError } from '@/shared/api/http';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
-import type { CategorySlug } from '@/shared/types/game';
+import type { Category, SortValue } from '@/shared/types/game';
+import { createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
+import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import './library-filter.scss';
 
 export interface SortOption {
-  readonly id: string;
+  readonly value: SortValue;
   readonly label: string;
 }
 
+// Values are the API's `sort` parameter; the order matches the dropdown.
 export const SORT_OPTIONS: readonly SortOption[] = [
-  { id: 'rating', label: 'Rating' },
-  { id: 'popular', label: 'Popular' },
-  { id: 'newest', label: 'Newest' },
+  { value: 'rating-desc', label: 'Rating ↓' },
+  { value: 'rating-asc', label: 'Rating ↑' },
+  { value: 'name-asc', label: 'Name A–Z' },
+  { value: 'name-desc', label: 'Name Z–A' },
 ];
 
 function enableDragScroll(container: HTMLElement): () => void {
@@ -76,13 +82,30 @@ function enableDragScroll(container: HTMLElement): () => void {
   };
 }
 
-function getSortDisplayText(label: string): string {
-  return `Sort by: ${label} ↓`;
+const SKELETON_CHIPS_COUNT = 7;
+
+export interface LibraryFilterOptions {
+  readonly initialSort: SortValue;
+  readonly onCategoryChange: (category: string) => void;
+  readonly onSortChange: (sort: SortValue) => void;
 }
 
-export function createLibraryFilter(): Component {
-  let activeCategory: CategorySlug = 'all';
-  let activeSortId = SORT_OPTIONS[0]?.id ?? 'rating';
+export interface LibraryFilterComponent extends Component {
+  // undefined = no category in the URL: highlight the API's default chip.
+  readonly setActiveCategory: (category: string | undefined) => void;
+  readonly setActiveSort: (sort: SortValue) => void;
+}
+
+function getSortDisplayText(sort: SortValue): string {
+  const option = SORT_OPTIONS.find((item) => item.value === sort);
+  return `Sort by: ${option?.label ?? sort}`;
+}
+
+export function createLibraryFilter(options: LibraryFilterOptions): LibraryFilterComponent {
+  let requestedCategory: string | undefined;
+  let categories: readonly Category[] = [];
+  let abortController: AbortController | undefined;
+  let activeSort = options.initialSort;
   let isSortOpen = false;
 
   const heading = createElement('h1', {
@@ -100,41 +123,21 @@ export function createLibraryFilter(): Component {
     children: [heading, subtitle],
   });
 
-  const chipButtons: { button: HTMLButtonElement; slug: CategorySlug }[] = [];
+  const chipButtons: { button: HTMLButtonElement; slug: string }[] = [];
 
-  const updateActiveChip = (slug: CategorySlug): void => {
-    activeCategory = slug;
+  function getActiveSlug(): string | undefined {
+    return requestedCategory ?? categories.find((category) => category.isDefault)?.slug;
+  }
+
+  function updateActiveChip(): void {
+    const activeSlug = getActiveSlug();
+
     for (const item of chipButtons) {
-      const isActive = item.slug === activeCategory;
+      const isActive = item.slug === activeSlug;
       item.button.classList.toggle('library-filter__chip--active', isActive);
-      if (isActive) {
-        item.button.setAttribute('aria-selected', 'true');
-      } else if (item.button.hasAttribute('aria-selected')) {
-        item.button.removeAttribute('aria-selected');
-      }
+      item.button.setAttribute('aria-selected', String(isActive));
     }
-  };
-
-  const chips = categories.map((cat) => {
-    const isInitial = cat.slug === activeCategory;
-    const button = createElement('button', {
-      className: isInitial
-        ? 'library-filter__chip library-filter__chip--active'
-        : 'library-filter__chip',
-      text: cat.label,
-      attributes: {
-        type: 'button',
-        role: 'tab',
-        ...(isInitial && { 'aria-selected': 'true' }),
-      },
-      onClick: () => {
-        updateActiveChip(cat.slug);
-      },
-    });
-
-    chipButtons.push({ button, slug: cat.slug });
-    return button;
-  });
+  }
 
   const chipsContainer = createElement('div', {
     className: 'library-filter__chips-container',
@@ -142,14 +145,82 @@ export function createLibraryFilter(): Component {
       role: 'tablist',
       'aria-label': 'Filter by category',
     },
-    children: chips,
   });
+
+  const chipsStatus = createElement('div', { className: 'library-filter__chips-status' });
+
+  function renderChips(): void {
+    chipButtons.length = 0;
+
+    const chips = categories.map((category) => {
+      const button = createElement('button', {
+        className: 'library-filter__chip',
+        text: category.label,
+        attributes: { type: 'button', role: 'tab' },
+        onClick: () => {
+          if (category.slug !== getActiveSlug()) {
+            options.onCategoryChange(category.slug);
+          }
+        },
+      });
+
+      chipButtons.push({ button, slug: category.slug });
+      return button;
+    });
+
+    chipsContainer.replaceChildren(...chips);
+    updateActiveChip();
+  }
+
+  function showChipsLoading(): void {
+    chipsStatus.replaceChildren();
+    chipsContainer.replaceChildren(
+      ...createSkeletonList(SKELETON_CHIPS_COUNT, () =>
+        createSkeleton({ className: 'library-filter__chip-skeleton' }),
+      ),
+    );
+    setBusy(chipsContainer, true);
+  }
+
+  function showChipsError(message: string): void {
+    chipsContainer.replaceChildren();
+    chipsStatus.replaceChildren(
+      createErrorBanner({
+        title: 'Could not load categories',
+        message,
+        onRetry: () => {
+          void loadCategories();
+        },
+      }),
+    );
+    showSnackbar({ message: 'Failed to load categories.', variant: 'error' });
+  }
+
+  async function loadCategories(): Promise<void> {
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+
+    showChipsLoading();
+
+    try {
+      categories = await fetchCategories(controller.signal);
+      setBusy(chipsContainer, false);
+      renderChips();
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      setBusy(chipsContainer, false);
+      showChipsError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
 
   const cleanupDrag = enableDragScroll(chipsContainer);
 
   const sortLabel = createElement('span', {
     className: 'library-filter__sort-label',
-    text: getSortDisplayText(SORT_OPTIONS[0]?.label ?? 'Rating'),
+    text: getSortDisplayText(activeSort),
   });
 
   const sortButton = createElement('button', {
@@ -185,19 +256,27 @@ export function createLibraryFilter(): Component {
     }
   };
 
-  const selectSort = (option: SortOption): void => {
-    activeSortId = option.id;
-    sortLabel.textContent = getSortDisplayText(option.label);
+  const updateSortUi = (sort: SortValue): void => {
+    activeSort = sort;
+    sortLabel.textContent = getSortDisplayText(sort);
     for (const entry of sortOptionItems) {
-      const isSelected = entry.option.id === activeSortId;
+      const isSelected = entry.option.value === activeSort;
       entry.item.classList.toggle('library-filter__sort-option--active', isSelected);
       entry.item.setAttribute('aria-selected', String(isSelected));
     }
+  };
+
+  // The URL owns the sort value: the dropdown only reports the choice and is
+  // re-synced through setActiveSort once the URL changes.
+  const selectSort = (option: SortOption): void => {
     closeSort();
+    if (option.value !== activeSort) {
+      options.onSortChange(option.value);
+    }
   };
 
   const sortOptions = SORT_OPTIONS.map((opt) => {
-    const isSelected = opt.id === activeSortId;
+    const isSelected = opt.value === activeSort;
     const item = createElement('li', {
       className: isSelected
         ? 'library-filter__sort-option library-filter__sort-option--active'
@@ -265,7 +344,7 @@ export function createLibraryFilter(): Component {
 
   const container = createElement('div', {
     className: 'library-filter__container',
-    children: [header, toolbar],
+    children: [header, toolbar, chipsStatus],
   });
 
   const element = createElement('section', {
@@ -274,9 +353,17 @@ export function createLibraryFilter(): Component {
     children: [container],
   });
 
+  void loadCategories();
+
   return {
     element,
+    setActiveCategory: (category: string | undefined): void => {
+      requestedCategory = category;
+      updateActiveChip();
+    },
+    setActiveSort: updateSortUi,
     destroy: (): void => {
+      abortController?.abort();
       cleanupDrag();
       document.removeEventListener('click', onDocumentClick);
       document.removeEventListener('keydown', onDocumentKeyDown);

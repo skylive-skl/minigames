@@ -24,5 +24,11 @@ export function createHomePage(): Component {
     ],
   });
 
-  return { element };
+  return {
+    element,
+    destroy: (): void => {
+      carousel.destroy?.();
+      leaderboard.destroy?.();
+    },
+  };
 }

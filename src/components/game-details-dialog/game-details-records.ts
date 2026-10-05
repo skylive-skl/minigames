@@ -47,7 +47,12 @@ function createRecordItem(record: TopRecord): HTMLLIElement {
   });
 }
 
-export function createGameDetailsRecords(records: readonly TopRecord[]): HTMLElement {
+export interface GameDetailsRecordsController {
+  readonly element: HTMLElement;
+  readonly update: (records: readonly TopRecord[]) => void;
+}
+
+export function createGameDetailsRecords(): GameDetailsRecordsController {
   const trophy = createElement('span', {
     attributes: { 'aria-hidden': 'true' },
     text: '\u{1F3C6}',
@@ -61,14 +66,18 @@ export function createGameDetailsRecords(records: readonly TopRecord[]): HTMLEle
     children: [trophy, document.createTextNode('Top Records')],
   });
 
-  const list = createElement('ol', {
-    className: 'game-details-dialog__records-list',
-    children: records.map((record) => createRecordItem(record)),
-  });
+  const list = createElement('ol', { className: 'game-details-dialog__records-list' });
 
-  return createElement('section', {
+  const element = createElement('section', {
     className: 'game-details-dialog__records',
     attributes: { 'aria-labelledby': 'game-details-records-heading' },
     children: [heading, list],
   });
+
+  return {
+    element,
+    update: (records: readonly TopRecord[]): void => {
+      list.replaceChildren(...records.map((record) => createRecordItem(record)));
+    },
+  };
 }

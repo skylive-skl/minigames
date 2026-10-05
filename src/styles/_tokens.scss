@@ -21,6 +21,10 @@
   --color-price-free: #0b8a8f;
   --color-like: #ff4b4b;
   --color-error: #b3261e;
+  --color-error-container: #fde8e6;
+  --color-success: #1e7a46;
+  --color-success-container: #e3f5ea;
+  --color-info-container: var(--color-secondary);
 
   // Dev CTA
   --color-cta-illustration-bg: #bfc3ec;
@@ -75,6 +79,7 @@
   --size-dialog: 600px;
   --size-dialog-hero: 220px;
   --size-sort-menu: 190px;
+  --size-snackbar: 420px;
 
   // Corners
   --corner-extra-small: 4px;

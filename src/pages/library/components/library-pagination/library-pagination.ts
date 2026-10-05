@@ -4,14 +4,17 @@ import { createChevronLeftIcon, createChevronRightIcon } from '@/shared/ui/icon/
 import './library-pagination.scss';
 
 export interface LibraryPaginationOptions {
-  readonly initialPage?: number;
+  readonly onPageChange: (page: number) => void;
+}
+
+export interface PaginationState {
+  readonly page: number;
   readonly totalPages: number;
-  readonly onPageChange?: (page: number) => void;
 }
 
 export interface LibraryPaginationComponent extends Component {
-  readonly setPage: (page: number) => void;
-  readonly getPage: () => number;
+  // Rebuilds the controls from API metadata without emitting onPageChange.
+  readonly update: (state: PaginationState) => void;
 }
 
 function getVisiblePageNumbers(
@@ -38,8 +41,10 @@ function getVisiblePageNumbers(
 export function createLibraryPagination(
   options: LibraryPaginationOptions,
 ): LibraryPaginationComponent {
-  const { initialPage = 1, totalPages, onPageChange } = options;
-  let currentPage = initialPage;
+  const { onPageChange } = options;
+  let currentPage = 1;
+  // 0 = empty result: page 1 is still shown, both arrows are disabled.
+  let totalPages = 0;
 
   const mediaQuery = globalThis.matchMedia('(max-width: 768px)');
   let isMobile = mediaQuery.matches;
@@ -86,7 +91,7 @@ export function createLibraryPagination(
 
   const renderPagination = (): void => {
     const maxVisible = getMaxVisible();
-    const visiblePages = getVisiblePageNumbers(currentPage, totalPages, maxVisible);
+    const visiblePages = getVisiblePageNumbers(currentPage, Math.max(totalPages, 1), maxVisible);
 
     const isPreviousDisabled = currentPage <= 1;
     const isNextDisabled = currentPage >= totalPages;
@@ -135,15 +140,15 @@ export function createLibraryPagination(
     pagesContainer.replaceChildren(...items);
   };
 
+  // The URL owns the current page: a click only reports the target page and
+  // the controls are rebuilt once the API responds with new metadata.
   const goToPage = (page: number): void => {
     const targetPage = Math.max(1, Math.min(page, totalPages));
     if (targetPage === currentPage) {
       return;
     }
 
-    currentPage = targetPage;
-    renderPagination();
-    onPageChange?.(currentPage);
+    onPageChange(targetPage);
   };
 
   const onMediaChange = (event: MediaQueryListEvent): void => {
@@ -165,10 +170,11 @@ export function createLibraryPagination(
 
   return {
     element: nav,
-    setPage: (page: number): void => {
-      goToPage(page);
+    update: (state: PaginationState): void => {
+      totalPages = Math.max(0, state.totalPages);
+      currentPage = totalPages === 0 ? 1 : Math.max(1, Math.min(state.page, totalPages));
+      renderPagination();
     },
-    getPage: (): number => currentPage,
     destroy: (): void => {
       mediaQuery.removeEventListener('change', onMediaChange);
     },

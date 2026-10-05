@@ -285,3 +285,18 @@
     }
   }
 }
+
+.leaderboard__skeleton-text {
+  width: 70%;
+  max-width: var(--size-15);
+}
+
+.leaderboard__avatar-skeleton {
+  width: var(--size-4);
+  height: var(--size-4);
+
+  @include bp.mobile-down {
+    width: var(--size-3);
+    height: var(--size-3);
+  }
+}

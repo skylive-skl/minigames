@@ -1,4 +1,4 @@
-import { AUTH_DIALOG_OPEN_EVENT } from '@/shared/lib/app-events';
+import { HOME_HREF } from '@/app/paths';
 import { createElement } from '@/shared/lib/dom';
 import {
   createCloseIcon,
@@ -42,7 +42,7 @@ function unlockBodyScroll(): void {
   document.body.style.paddingRight = '';
 }
 
-function isDialogMode(value: unknown): value is DialogMode {
+export function isDialogMode(value: unknown): value is DialogMode {
   return value === DialogMode.Login || value === DialogMode.Register;
 }
 
@@ -216,7 +216,7 @@ function createLoginForm(onSwitchToRegister: () => void): HTMLElement {
   const forgotLink = createElement('a', {
     className: 'auth-dialog__forgot',
     text: 'Forgot Password?',
-    attributes: { href: '#/home' },
+    attributes: { href: HOME_HREF },
   });
 
   const submitButton = createElement('button', {
@@ -347,8 +347,22 @@ function createRegisterForm(onSwitchToLogin: () => void): HTMLElement {
   });
 }
 
-export function createAuthDialog(): Component {
+export interface AuthDialogOptions {
+  // Fires on every close (button, backdrop, Escape, programmatic).
+  readonly onClose?: () => void;
+  // Fires when the user switches between Login and Sign Up inside the dialog.
+  readonly onModeChange?: (mode: DialogMode) => void;
+}
+
+export interface AuthDialogComponent extends Component {
+  readonly open: (mode: DialogMode) => void;
+  readonly close: () => void;
+  readonly getOpenMode: () => DialogMode | undefined;
+}
+
+export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
+  let currentMode = DialogMode.Login;
 
   const closeButton = createElement('button', {
     className: 'auth-dialog__close',
@@ -360,6 +374,7 @@ export function createAuthDialog(): Component {
   });
 
   function setMode(mode: DialogMode): void {
+    currentMode = mode;
     for (const tab of tabs) {
       const isActive = tab.mode === mode;
       tab.button.classList.toggle('auth-dialog__tab--active', isActive);
@@ -372,6 +387,14 @@ export function createAuthDialog(): Component {
     crossfadeContent(body, content);
   }
 
+  function switchMode(mode: DialogMode): void {
+    if (mode === currentMode) {
+      return;
+    }
+    setMode(mode);
+    options.onModeChange?.(mode);
+  }
+
   const tabs: readonly TabButton[] = [DialogMode.Login, DialogMode.Register].map((mode) => ({
     mode,
     button: createElement('button', {
@@ -379,7 +402,7 @@ export function createAuthDialog(): Component {
       text: TAB_LABELS[mode],
       attributes: { type: 'button', role: 'tab', 'aria-controls': 'auth-dialog-panel' },
       onClick: () => {
-        setMode(mode);
+        switchMode(mode);
       },
     }),
   }));
@@ -391,10 +414,10 @@ export function createAuthDialog(): Component {
   });
 
   const loginPanel = createLoginForm(() => {
-    setMode(DialogMode.Register);
+    switchMode(DialogMode.Register);
   });
   const registerPanel = createRegisterForm(() => {
-    setMode(DialogMode.Login);
+    switchMode(DialogMode.Login);
   });
 
   const body = createElement('div', {
@@ -423,6 +446,7 @@ export function createAuthDialog(): Component {
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     lastFocusedElement?.focus();
+    options.onClose?.();
   });
 
   function getFocusableElements(): HTMLElement[] {
@@ -456,28 +480,34 @@ export function createAuthDialog(): Component {
     }
   }
 
-  function handleOpenRequest(event: Event): void {
-    const { detail } = event as CustomEvent<unknown>;
-
-    if (!isDialogMode(detail)) {
+  function open(mode: DialogMode): void {
+    if (dialog.open) {
+      if (mode !== currentMode) {
+        setMode(mode);
+      }
       return;
     }
 
     lastFocusedElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
-    setMode(detail);
+    setMode(mode);
     dialog.showModal();
     lockBodyScroll();
     document.addEventListener('keydown', handleKeydown);
   }
 
-  document.addEventListener(AUTH_DIALOG_OPEN_EVENT, handleOpenRequest);
   setMode(DialogMode.Login);
 
   return {
     element: dialog,
+    open,
+    close: (): void => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    },
+    getOpenMode: (): DialogMode | undefined => (dialog.open ? currentMode : undefined),
     destroy: (): void => {
-      document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, handleOpenRequest);
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
     },
