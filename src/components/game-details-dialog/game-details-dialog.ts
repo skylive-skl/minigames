@@ -1,7 +1,6 @@
 import { fetchLatestComments } from '@/shared/api/comments-api';
 import { fetchGameDetails } from '@/shared/api/games-api';
 import { ApiError, isAbortError } from '@/shared/api/http';
-import { onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { GameDetails } from '@/shared/types/game';
@@ -49,13 +48,22 @@ function createBodySkeleton(): HTMLElement {
   });
 }
 
+export interface GameDetailsDialogOptions {
+  // Fires on every close (button, backdrop, Escape, programmatic).
+  readonly onClose?: () => void;
+}
+
 export interface GameDetailsDialogComponent extends Component {
   readonly open: (slug?: string) => void;
   readonly close: () => void;
+  readonly getOpenSlug: () => string | undefined;
 }
 
-export function createGameDetailsDialog(): GameDetailsDialogComponent {
+export function createGameDetailsDialog(
+  options: GameDetailsDialogOptions = {},
+): GameDetailsDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
+  let openSlug: string | undefined;
   let abortController: AbortController | undefined;
   let commentsAbortController: AbortController | undefined;
 
@@ -229,6 +237,7 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   }
 
   const openDialog = (slug?: string): void => {
+    openSlug = slug;
     void loadDetails(slug);
 
     if (dialog.open) {
@@ -257,25 +266,23 @@ export function createGameDetailsDialog(): GameDetailsDialogComponent {
   });
 
   dialog.addEventListener('close', () => {
+    openSlug = undefined;
     abortRequests();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     info.resetFavorite();
     comments.reset();
     lastFocusedElement?.focus();
-  });
-
-  const unsubscribe = onGameDetailsOpen((slug) => {
-    openDialog(slug);
+    options.onClose?.();
   });
 
   return {
     element: dialog,
     open: openDialog,
     close: closeDialog,
+    getOpenSlug: (): string | undefined => (dialog.open ? openSlug : undefined),
     destroy: (): void => {
       abortRequests();
-      unsubscribe();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
     },
