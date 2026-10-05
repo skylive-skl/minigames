@@ -17,7 +17,6 @@ export interface Game {
   readonly rating: number;
   readonly likesCount: number;
   readonly cardImage: string;
-  readonly featured: boolean;
 }
 
 export interface GameSpecs {
