@@ -1,5 +1,26 @@
-import { describe, expect, it } from 'vitest';
-import { getRouteState, navigate, resolveRoute, updateQuery } from './router';
+import { describe, expect, it, vi } from 'vitest';
+import type { PageComponent } from './routes';
+import {
+  createRouter,
+  getRouteState,
+  navigate,
+  onBeforeRouteChange,
+  onRouteChange,
+  resolveRoute,
+  updateQuery,
+} from './router';
+
+const { createStubPage } = vi.hoisted(() => ({
+  createStubPage: (): PageComponent => ({ element: document.createElement('section') }),
+}));
+
+vi.mock('./routes', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./routes')>();
+  return {
+    ...original,
+    routes: { home: createStubPage, library: createStubPage, 'not-found': createStubPage },
+  };
+});
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -85,5 +106,34 @@ describe('updateQuery', () => {
     updateQuery({ game: undefined });
 
     expect(globalThis.location.search).toBe('');
+  });
+});
+
+describe('route change hooks', () => {
+  it('runs before-route listeners ahead of route listeners on every render', () => {
+    const calls: string[] = [];
+    const stopBefore = onBeforeRouteChange(() => {
+      calls.push('before');
+    });
+    const stopAfter = onRouteChange((state) => {
+      calls.push(`route:${state.name}`);
+    });
+    createRouter(document.createElement('main')).start();
+
+    navigate('/library');
+
+    expect(calls).toEqual(['before', 'route:home', 'before', 'route:library']);
+    stopBefore();
+    stopAfter();
+  });
+
+  it('stops calling a before-route listener after unsubscribe', () => {
+    const listener = vi.fn();
+    onBeforeRouteChange(listener)();
+    createRouter(document.createElement('main')).start();
+
+    navigate('/library');
+
+    expect(listener).not.toHaveBeenCalled();
   });
 });
