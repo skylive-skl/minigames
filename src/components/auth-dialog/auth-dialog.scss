@@ -237,6 +237,24 @@
   }
 }
 
+.auth-dialog__field--invalid .auth-dialog__input {
+  border-color: var(--color-error);
+
+  @include bp.hover {
+    border-color: var(--color-error);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-error);
+  }
+}
+
+.auth-dialog__error {
+  @include type.body-small;
+
+  color: var(--color-error);
+}
+
 .auth-dialog__toggle-password {
   @include mix.button-reset;
   @include mix.focus-ring;
@@ -286,6 +304,13 @@
 
   &:active {
     filter: brightness(0.94);
+  }
+
+  &:disabled {
+    background-color: var(--color-primary);
+    cursor: not-allowed;
+    filter: none;
+    opacity: var(--opacity-disabled);
   }
 }
 

@@ -7,6 +7,8 @@ import {
   createSubmitButton,
   createSwitchText,
 } from './auth-form-parts';
+import { createFormValidation, type FormValidation } from './auth-form-validation';
+import { validateRegisterForm, type RegisterValues } from './auth-validation';
 
 export interface RegisterFormOptions {
   readonly headingId: string;
@@ -14,7 +16,6 @@ export interface RegisterFormOptions {
 }
 
 export interface RegisterForm {
-  // The whole panel: heading, form and the "switch to Login" line.
   readonly element: HTMLElement;
   readonly form: HTMLFormElement;
   readonly fields: {
@@ -23,6 +24,7 @@ export interface RegisterForm {
     readonly password: AuthField;
     readonly confirmPassword: AuthField;
   };
+  readonly validation: FormValidation<keyof RegisterValues>;
   readonly submitButton: HTMLButtonElement;
   readonly googleButton: HTMLButtonElement;
   readonly switchButton: HTMLButtonElement;
@@ -44,7 +46,7 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     label: 'Username',
     type: 'text',
     autocomplete: 'username',
-    placeholder: 'e.g. CozyGamer_99',
+    placeholder: 'e.g. CozyGamer99',
     icon: createPersonIcon(),
   });
 
@@ -62,7 +64,7 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     label: 'Password',
     type: 'password',
     autocomplete: 'new-password',
-    placeholder: 'Min. 8 characters',
+    placeholder: 'Min. 6 characters',
     icon: createLockIcon(),
   });
 
@@ -97,8 +99,15 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     ],
   });
 
+  const validation = createFormValidation({
+    fields: { username, email, password, confirmPassword },
+    validate: validateRegisterForm,
+    submitButton,
+  });
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    validation.revealAll();
   });
 
   return {
@@ -108,6 +117,7 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     }),
     form,
     fields: { username, email, password, confirmPassword },
+    validation,
     submitButton,
     googleButton,
     switchButton: switchText.button,

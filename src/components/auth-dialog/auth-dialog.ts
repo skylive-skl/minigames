@@ -46,10 +46,6 @@ function isReducedMotionPreferred(): boolean {
   return globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// Crossfades tab content and animates the container's height from the old
-// panel's height to the new one's, measuring the incoming panel as an
-// absolutely-positioned overlay so it never affects layout while both
-// panels are briefly present together.
 function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void {
   pendingCleanups.get(container)?.();
   pendingCleanups.delete(container);
@@ -101,9 +97,7 @@ function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void 
 }
 
 export interface AuthDialogOptions {
-  // Fires on every close (button, backdrop, Escape, programmatic).
   readonly onClose?: () => void;
-  // Fires when the user switches between Login and Sign Up inside the dialog.
   readonly onModeChange?: (mode: DialogMode) => void;
 }
 
@@ -126,7 +120,15 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
     },
   });
 
+  function resetForms(): void {
+    loginForm.validation.reset();
+    registerForm.validation.reset();
+  }
+
   function setMode(mode: DialogMode): void {
+    if (mode !== currentMode) {
+      resetForms();
+    }
     currentMode = mode;
     for (const tab of tabs) {
       const isActive = tab.mode === mode;
@@ -202,6 +204,7 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
   });
 
   dialog.addEventListener('close', () => {
+    resetForms();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     lastFocusedElement?.focus();

@@ -8,6 +8,8 @@ import {
   createSubmitButton,
   createSwitchText,
 } from './auth-form-parts';
+import { createFormValidation, type FormValidation } from './auth-form-validation';
+import { validateLoginForm, type LoginValues } from './auth-validation';
 
 export interface LoginFormOptions {
   readonly headingId: string;
@@ -15,10 +17,10 @@ export interface LoginFormOptions {
 }
 
 export interface LoginForm {
-  // The whole panel: heading, form and the "switch to Register" line.
   readonly element: HTMLElement;
   readonly form: HTMLFormElement;
   readonly fields: { readonly email: AuthField; readonly password: AuthField };
+  readonly validation: FormValidation<keyof LoginValues>;
   readonly submitButton: HTMLButtonElement;
   readonly googleButton: HTMLButtonElement;
   readonly switchButton: HTMLButtonElement;
@@ -81,8 +83,15 @@ export function createLoginForm(options: LoginFormOptions): LoginForm {
     ],
   });
 
+  const validation = createFormValidation({
+    fields: { email, password },
+    validate: validateLoginForm,
+    submitButton,
+  });
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    validation.revealAll();
   });
 
   return {
@@ -92,6 +101,7 @@ export function createLoginForm(options: LoginFormOptions): LoginForm {
     }),
     form,
     fields: { email, password },
+    validation,
     submitButton,
     googleButton,
     switchButton: switchText.button,
