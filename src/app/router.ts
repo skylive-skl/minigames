@@ -95,6 +95,21 @@ export function onRouteChange(listener: RouteChangeListener): () => void {
   };
 }
 
+const beforeRouteListeners = new Set<() => void>();
+
+export function onBeforeRouteChange(listener: () => void): () => void {
+  beforeRouteListeners.add(listener);
+  return () => {
+    beforeRouteListeners.delete(listener);
+  };
+}
+
+function notifyBeforeRouteChange(): void {
+  for (const listener of beforeRouteListeners) {
+    listener();
+  }
+}
+
 function notifyRouteChange(state: RouteState): void {
   for (const listener of routeListeners) {
     listener(state);
@@ -166,6 +181,7 @@ export function createRouter(outlet: HTMLElement): Router {
   let currentPath: string | undefined;
 
   function render(): void {
+    notifyBeforeRouteChange();
     const state = getRouteState();
 
     // Same path = same page instance; only the query changed.

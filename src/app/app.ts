@@ -2,6 +2,7 @@ import { createAuthDialog, isDialogMode } from '@/components/auth-dialog/auth-di
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
+import { ensureActiveSession, initSession } from '@/shared/auth/session-store';
 import { onAuthDialogOpen, onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
 import {
@@ -11,7 +12,13 @@ import {
   openDialogInUrl,
   replaceDialogInUrl,
 } from './dialog-history';
-import { createRouter, onRouteChange, updateQuery, type RouteState } from './router';
+import {
+  createRouter,
+  onBeforeRouteChange,
+  onRouteChange,
+  updateQuery,
+  type RouteState,
+} from './router';
 
 export interface App {
   readonly element: HTMLElement;
@@ -89,6 +96,11 @@ export function createApp(): App {
   return {
     element,
     start: (): void => {
+      // Recover or discard the stored session before the first route renders.
+      initSession();
+      onBeforeRouteChange(() => {
+        ensureActiveSession();
+      });
       createRouter(outlet).start();
     },
   };
