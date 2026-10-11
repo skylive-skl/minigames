@@ -22,6 +22,9 @@ export default defineConfig((configEnvironment) =>
           // Test infrastructure (jsdom polyfills, helpers) and the tests themselves.
           'src/test/**',
           'src/**/*.test.ts',
+          // Firebase SDK bootstrap: builds the config from env variables and
+          // calls initializeApp/getAuth; auth behavior lives in auth-service.ts.
+          'src/shared/auth/firebase.ts',
           // Ambient type declarations compile to nothing.
           'src/**/*.d.ts',
         ],
