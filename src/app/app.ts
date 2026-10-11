@@ -22,7 +22,6 @@ import {
 
 export interface App {
   readonly element: HTMLElement;
-  // Must run after `element` is in the document: deep links open <dialog>s.
   readonly start: () => void;
 }
 
@@ -54,7 +53,6 @@ export function createApp(): App {
     ],
   });
 
-  // Cards only announce the intent; the URL change below opens the dialog.
   onGameDetailsOpen((slug) => {
     if (slug !== undefined) {
       openDialogInUrl(GAME_QUERY_KEY, slug);
@@ -83,7 +81,6 @@ export function createApp(): App {
     } else if (isDialogMode(mode)) {
       authDialog.open(mode);
     } else {
-      // Unknown value (e.g. ?auth=foo): drop it so the URL stays truthful.
       updateQuery({ [AUTH_QUERY_KEY]: undefined }, { replace: true });
     }
   }
@@ -96,7 +93,6 @@ export function createApp(): App {
   return {
     element,
     start: (): void => {
-      // Recover or discard the stored session before the first route renders.
       initSession();
       onBeforeRouteChange(() => {
         ensureActiveSession();
