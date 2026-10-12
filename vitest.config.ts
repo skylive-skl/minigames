@@ -13,6 +13,9 @@ export default defineConfig((configEnvironment) =>
         provider: 'v8',
         reporter: ['text', 'html'],
         include: ['src/**/*.ts'],
+        // Story 4 target: aggregate statement coverage must stay at 80%+;
+        // the coverage run fails below it.
+        thresholds: { statements: 80 },
         // Every exclusion below contains no application logic.
         exclude: [
           // Bootstrap only: mounts the app and starts it, no logic of its own.
