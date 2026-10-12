@@ -4,7 +4,8 @@ import type { GameComment } from '@/shared/types/game';
 import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
 import { createSkeleton, createSkeletonList, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { createCommentForm } from './game-details-comment-form';
-import { createCommentsList } from './game-details-comments-list';
+import { createAvatarColorPicker } from './comment-avatar';
+import { createCommentsList, type CommentLikeHandler } from './game-details-comments-list';
 
 const SKELETON_COMMENTS_COUNT = 3;
 
@@ -20,6 +21,7 @@ export interface GameDetailsCommentsController {
 
 export interface GameDetailsCommentsOptions {
   readonly onSubmit?: (text: string) => void;
+  readonly onLike?: CommentLikeHandler;
 }
 
 function createSkeletonComment(): HTMLElement {
@@ -44,6 +46,8 @@ export function createGameDetailsComments(
   });
 
   const form = createCommentForm(options);
+  // Lives as long as the comments view, keeping each commenter's color.
+  const getAvatarColor = createAvatarColorPicker();
   const content = createElement('div', { className: 'game-details-dialog__comments-content' });
 
   const section = createElement('section', {
@@ -75,7 +79,7 @@ export function createGameDetailsComments(
         return;
       }
 
-      content.replaceChildren(createCommentsList(comments));
+      content.replaceChildren(createCommentsList(comments, getAvatarColor, options.onLike));
     },
     showError: (message: string, onRetry: () => void): void => {
       setBusy(content, false);

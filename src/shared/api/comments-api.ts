@@ -38,3 +38,20 @@ export async function postComment(slug: string, comment: NewComment): Promise<Ga
   );
   return response.data;
 }
+
+export interface CommentLikeState {
+  readonly isLikedByCurrentUser: boolean;
+  readonly likesCount: number;
+}
+
+// Toggle: each successful call flips the user's like on the comment.
+export async function toggleCommentLike(
+  commentId: string,
+  userEmail: string,
+): Promise<CommentLikeState> {
+  const response = await apiPost<ApiResponse<CommentLikeState>>(
+    `/comments/${encodeURIComponent(commentId)}/like`,
+    { userEmail },
+  );
+  return response.data;
+}

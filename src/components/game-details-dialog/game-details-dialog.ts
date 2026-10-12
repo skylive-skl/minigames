@@ -1,4 +1,4 @@
-import { fetchLatestComments, postComment } from '@/shared/api/comments-api';
+import { fetchLatestComments, postComment, toggleCommentLike } from '@/shared/api/comments-api';
 import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
 import { ApiError, isAbortError, NETWORK_ERROR_STATUS } from '@/shared/api/http';
 import { getCommentAuthorName } from '@/shared/auth/profile';
@@ -12,6 +12,7 @@ import { createCloseIcon } from '@/shared/ui/icon/icon';
 import { createSkeleton, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameDetailsComments } from './game-details-comments';
+import type { CommentLikeControl } from './game-details-comments-list';
 import { createGameDetailsHero } from './game-details-hero';
 import { createGameDetailsInfo } from './game-details-info';
 import { createGameDetailsRecords } from './game-details-records';
@@ -27,6 +28,10 @@ function isOutcomeUnknown(error: unknown): boolean {
 const COMMENT_GUEST_WARNING = 'Log in to write a comment.';
 const COMMENT_UNKNOWN_MESSAGE =
   "We couldn't confirm your comment was posted. Your text is kept; refresh the comments before sending it again.";
+
+const LIKE_GUEST_WARNING = 'Log in to like comments.';
+const LIKE_UNKNOWN_MESSAGE =
+  "We couldn't confirm your like. Reopen the game to see the comment's current state.";
 
 const FAVORITE_GUEST_WARNING = 'Log in to add games to your favorites.';
 const FAVORITE_UNKNOWN_MESSAGE =
@@ -111,6 +116,9 @@ export function createGameDetailsDialog(
   const comments = createGameDetailsComments({
     onSubmit: (text) => {
       void handleCommentSubmit(text);
+    },
+    onLike: (commentId, control) => {
+      void handleCommentLike(commentId, control);
     },
   });
 
@@ -276,6 +284,42 @@ export function createGameDetailsDialog(
     } finally {
       isCommentPending = false;
       comments.setPending(false);
+    }
+  }
+
+  // One in-flight toggle per comment; state comes only from the response.
+  const pendingLikes = new Set<string>();
+
+  async function handleCommentLike(commentId: string, control: CommentLikeControl): Promise<void> {
+    if (pendingLikes.has(commentId)) {
+      return;
+    }
+
+    const session = requireSession(LIKE_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    pendingLikes.add(commentId);
+    control.setPending(true);
+
+    try {
+      const result = await toggleCommentLike(commentId, session.email);
+      control.setState(result.isLikedByCurrentUser, result.likesCount);
+    } catch (error) {
+      showSnackbar(
+        isOutcomeUnknown(error)
+          ? { message: LIKE_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not update the like. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      pendingLikes.delete(commentId);
+      control.setPending(false);
     }
   }
 

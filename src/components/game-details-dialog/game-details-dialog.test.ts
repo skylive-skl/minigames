@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchLatestComments, postComment } from '@/shared/api/comments-api';
+import { fetchLatestComments, postComment, toggleCommentLike } from '@/shared/api/comments-api';
 import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
 import { ApiError } from '@/shared/api/http';
 import { AUTH_DIALOG_OPEN_EVENT } from '@/shared/lib/app-events';
@@ -13,6 +13,7 @@ vi.mock('@/shared/api/games-api', () => ({ fetchGameDetails: vi.fn(), toggleFavo
 vi.mock('@/shared/api/comments-api', () => ({
   fetchLatestComments: vi.fn(),
   postComment: vi.fn(),
+  toggleCommentLike: vi.fn(),
 }));
 vi.mock('@/shared/auth/auth-service', () => ({ signOutUser: vi.fn(() => Promise.resolve()) }));
 vi.mock('@/shared/ui/snackbar/snackbar', () => ({ showSnackbar: vi.fn() }));
@@ -475,5 +476,120 @@ describe('comment submission', () => {
 
     expect(postComment).not.toHaveBeenCalled();
     expect(authRequests).toHaveBeenCalledOnce();
+  });
+});
+
+async function likeButtonOf(root: Element): Promise<HTMLButtonElement> {
+  return vi.waitFor(() => {
+    const button = root.querySelector<HTMLButtonElement>(
+      '.game-details-dialog__comment-like-button',
+    );
+    if (button === null) {
+      throw new Error('Like button is missing');
+    }
+    return button;
+  });
+}
+
+describe('comment likes', () => {
+  const authRequests = vi.fn();
+
+  beforeEach(() => {
+    vi.mocked(fetchGameDetails).mockResolvedValue(gameDetails);
+    vi.mocked(fetchLatestComments).mockResolvedValue({
+      data: [comment],
+      meta: { totalComments: 1, returnedCount: 1, sort: 'newest' },
+    });
+    document.addEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+  });
+
+  afterEach(async () => {
+    document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+    authRequests.mockClear();
+    for (const gameDialog of mountedDialogs.splice(0)) {
+      gameDialog.destroy?.();
+    }
+    await logout();
+  });
+
+  it('initializes each button from the personalized comments', async () => {
+    vi.mocked(fetchLatestComments).mockResolvedValue({
+      data: [{ ...comment, isLikedByCurrentUser: true, likesCount: 7 }],
+      meta: { totalComments: 1, returnedCount: 1, sort: 'newest' },
+    });
+    startSession(profile);
+
+    const button = await likeButtonOf(openDialog().element);
+
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.textContent).toBe('7');
+  });
+
+  it('opens Auth with a warning for guests and sends no request', async () => {
+    const button = await likeButtonOf(openDialog().element);
+
+    button.click();
+
+    expect(toggleCommentLike).not.toHaveBeenCalled();
+    expect(authRequests).toHaveBeenCalledOnce();
+    expect(showSnackbar).toHaveBeenCalledWith({
+      message: 'Log in to like comments.',
+      variant: 'warning',
+    });
+  });
+
+  it('locks the button while pending and applies the server response', async () => {
+    startSession(profile);
+    const button = await likeButtonOf(openDialog().element);
+    const pending = Promise.withResolvers<Awaited<ReturnType<typeof toggleCommentLike>>>();
+    vi.mocked(toggleCommentLike).mockReturnValue(pending.promise);
+
+    button.click();
+    button.click();
+
+    expect(toggleCommentLike).toHaveBeenCalledOnce();
+    expect(toggleCommentLike).toHaveBeenCalledWith('c1', 'alex@mail.com');
+    expect(button.disabled).toBe(true);
+    expect(button.querySelector('.spinner')).not.toBeNull();
+
+    pending.resolve({ isLikedByCurrentUser: true, likesCount: 3 });
+
+    await vi.waitFor(() => {
+      expect(button.disabled).toBe(false);
+    });
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.textContent).toBe('3');
+    expect(button.getAttribute('aria-label')).toBe('Like comment. 3 likes');
+  });
+
+  it('keeps the confirmed state when the server rejects the like', async () => {
+    startSession(profile);
+    const button = await likeButtonOf(openDialog().element);
+    vi.mocked(toggleCommentLike).mockRejectedValue(new ApiError('Comment not found', 404));
+
+    button.click();
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Could not update the like. Comment not found',
+        variant: 'error',
+      });
+    });
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.textContent).toBe('2');
+  });
+
+  it('reports an unknown outcome without replaying the like', async () => {
+    startSession(profile);
+    const button = await likeButtonOf(openDialog().element);
+    vi.mocked(toggleCommentLike).mockRejectedValue(new ApiError('Network error.', 0));
+
+    button.click();
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith(expect.objectContaining({ variant: 'warning' }));
+    });
+    expect(toggleCommentLike).toHaveBeenCalledOnce();
   });
 });
