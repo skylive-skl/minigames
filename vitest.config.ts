@@ -14,18 +14,11 @@ export default defineConfig((configEnvironment) =>
         reporter: ['text', 'html'],
         include: ['src/**/*.ts'],
         exclude: [
-          // Bootstrap only: mounts the app and starts it, no logic of its own.
           'src/main.ts',
-          // Dev-only Figma comparison overlay, loaded behind import.meta.env.DEV
-          // and never shipped in the production build.
           'src/shared/dev/**',
-          // Test infrastructure (jsdom polyfills, helpers) and the tests themselves.
           'src/test/**',
           'src/**/*.test.ts',
-          // Firebase SDK bootstrap: builds the config from env variables and
-          // calls initializeApp/getAuth; auth behavior lives in auth-service.ts.
           'src/shared/auth/firebase.ts',
-          // Ambient type declarations compile to nothing.
           'src/**/*.d.ts',
         ],
       },
