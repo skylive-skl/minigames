@@ -140,12 +140,17 @@
   }
 
   &__comment-input:disabled,
-  &__comment-submit:disabled,
-  &__comment-like-button:disabled {
+  &__comment-submit:disabled {
     cursor: not-allowed;
   }
 
   &__comment-submit:disabled {
+    opacity: var(--opacity-disabled);
+  }
+
+  // Only locked while its like request is pending.
+  &__comment-like-button:disabled {
+    cursor: progress;
     opacity: var(--opacity-disabled);
   }
 

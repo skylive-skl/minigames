@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchLatestComments, postComment } from './comments-api';
+import { fetchLatestComments, postComment, toggleCommentLike } from './comments-api';
 import { fetchFeaturedGames, fetchGameDetails, fetchGames, toggleFavorite } from './games-api';
 import { API_BASE_URL } from './http';
 
@@ -96,6 +96,20 @@ describe('comments api', () => {
     expect(url.href).toBe(`${API_BASE_URL}/games/tiny-glade/comments`);
     expect(init.method).toBe('POST');
     expect(init.body).toBe('{"userEmail":"alex@mail.com","authorName":"Alex","text":"Nice"}');
+  });
+
+  it('toggles a comment like with the user email in the body', async () => {
+    const fetchMock = mockFetch({ data: { isLikedByCurrentUser: true, likesCount: 13 } });
+
+    await expect(toggleCommentLike('c5d9-0001', 'alex@mail.com')).resolves.toEqual({
+      isLikedByCurrentUser: true,
+      likesCount: 13,
+    });
+
+    const { url, init } = requestOf(fetchMock);
+    expect(url.href).toBe(`${API_BASE_URL}/comments/c5d9-0001/like`);
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe('{"userEmail":"alex@mail.com"}');
   });
 
   it('adds userEmail for a signed-in user', async () => {
