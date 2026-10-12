@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchLatestComments } from './comments-api';
+import { fetchLatestComments, postComment } from './comments-api';
 import { fetchFeaturedGames, fetchGameDetails, fetchGames, toggleFavorite } from './games-api';
 import { API_BASE_URL } from './http';
 
@@ -82,6 +82,20 @@ describe('comments api', () => {
 
     const { url } = requestOf(fetchMock);
     expect(Object.fromEntries(url.searchParams)).toEqual({ limit: '3', sort: 'newest' });
+  });
+
+  it('posts a new comment and returns the created comment', async () => {
+    const created = { commentId: 'c9', authorName: 'Alex', text: 'Nice', likesCount: 0 };
+    const fetchMock = mockFetch({ data: created });
+
+    await expect(
+      postComment('tiny-glade', { userEmail: 'alex@mail.com', authorName: 'Alex', text: 'Nice' }),
+    ).resolves.toEqual(created);
+
+    const { url, init } = requestOf(fetchMock);
+    expect(url.href).toBe(`${API_BASE_URL}/games/tiny-glade/comments`);
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe('{"userEmail":"alex@mail.com","authorName":"Alex","text":"Nice"}');
   });
 
   it('adds userEmail for a signed-in user', async () => {
