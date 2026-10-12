@@ -6,6 +6,7 @@ import type { PageComponent } from './routes';
 const mocks = vi.hoisted(() => ({
   showSnackbar: vi.fn(),
   signOutUser: vi.fn(() => Promise.resolve()),
+  signInWithGoogle: vi.fn(),
   createStubPage: (): PageComponent => ({ element: document.createElement('section') }),
 }));
 
@@ -13,6 +14,7 @@ vi.mock('@/shared/ui/snackbar/snackbar', () => ({ showSnackbar: mocks.showSnackb
 vi.mock('@/shared/auth/auth-service', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/auth/auth-service')>()),
   signOutUser: mocks.signOutUser,
+  signInWithGoogle: mocks.signInWithGoogle,
 }));
 vi.mock('./routes', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./routes')>()),
@@ -136,5 +138,76 @@ describe('auth dialog guard', () => {
 
     expect(isAuthDialogOpen(root)).toBe(true);
     expect(localStorage.getItem(APP_SESSION_KEY)).toBeNull();
+  });
+});
+
+function isGameDetailsOpen(root: HTMLElement): boolean {
+  return root.querySelector<HTMLDialogElement>('.game-details-dialog')?.open ?? false;
+}
+
+describe('protected action from Game Details', () => {
+  removeGlobalListenersAfterEach();
+
+  beforeEach(() => {
+    mocks.showSnackbar.mockClear();
+    // Game Details requests never settle: these tests only follow the dialogs.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>(() => {
+            // Never settles.
+          }),
+      ),
+    );
+  });
+
+  it('swaps Game Details for Auth while keeping the game in the URL', async () => {
+    const root = await startApp('library?game=tiny-glade');
+    expect(isGameDetailsOpen(root)).toBe(true);
+    const { requireSession } = await import('@/shared/auth/protected-action');
+
+    expect(requireSession('Log in to like comments.')).toBeUndefined();
+
+    expect(isGameDetailsOpen(root)).toBe(false);
+    expect(isAuthDialogOpen(root)).toBe(true);
+    const parameters = new URLSearchParams(globalThis.location.search);
+    expect(parameters.get('game')).toBe('tiny-glade');
+    expect(parameters.get('auth')).toBe('login');
+  });
+
+  it('restores Game Details in guest mode when Auth is closed', async () => {
+    const root = await startApp('library?game=tiny-glade');
+    const { requireSession } = await import('@/shared/auth/protected-action');
+    requireSession('Log in to like comments.');
+
+    // Backdrop click closes Auth and steps back to the Game Details entry.
+    root.querySelector('.auth-dialog')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(isGameDetailsOpen(root)).toBe(true);
+    });
+    expect(isAuthDialogOpen(root)).toBe(false);
+    expect(globalThis.location.search).toBe('?game=tiny-glade');
+    const { getActiveSession } = await import('@/shared/auth/session-store');
+    expect(getActiveSession()).toBeUndefined();
+  });
+
+  it('restores Game Details in authenticated mode after signing in', async () => {
+    mocks.signInWithGoogle.mockResolvedValue({ displayName: 'Alex', email: 'alex@mail.com' });
+    const root = await startApp('library?game=tiny-glade');
+    const { requireSession } = await import('@/shared/auth/protected-action');
+    requireSession('Log in to add games to favorites.');
+
+    // The panel shown last is the active one (it may still be fading in).
+    [...root.querySelectorAll<HTMLButtonElement>('.auth-dialog__google-button')].at(-1)?.click();
+
+    await vi.waitFor(() => {
+      expect(isGameDetailsOpen(root)).toBe(true);
+    });
+    expect(isAuthDialogOpen(root)).toBe(false);
+    expect(globalThis.location.search).toBe('?game=tiny-glade');
+    const { getActiveSession } = await import('@/shared/auth/session-store');
+    expect(getActiveSession()?.email).toBe('alex@mail.com');
   });
 });
