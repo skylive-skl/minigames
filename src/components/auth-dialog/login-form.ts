@@ -8,6 +8,7 @@ import {
   createSubmitButton,
   createSwitchText,
 } from './auth-form-parts';
+import { createFormLock, type PendingAction } from './auth-form-lock';
 import { createFormValidation, type FormValidation } from './auth-form-validation';
 import { validateLoginForm, type LoginValues } from './auth-validation';
 
@@ -24,6 +25,8 @@ export interface LoginForm {
   readonly submitButton: HTMLButtonElement;
   readonly googleButton: HTMLButtonElement;
   readonly switchButton: HTMLButtonElement;
+  // Locks every input and action while an auth request is pending.
+  readonly setPending: (pending: PendingAction | undefined) => void;
 }
 
 export function createLoginForm(options: LoginFormOptions): LoginForm {
@@ -89,6 +92,16 @@ export function createLoginForm(options: LoginFormOptions): LoginForm {
     submitButton,
   });
 
+  const setPending = createFormLock({
+    fields: [email, password],
+    submitButton,
+    pendingSubmitLabel: 'Signing in…',
+    googleButton,
+    pendingGoogleLabel: 'Connecting to Google…',
+    actions: [switchText.button, forgotLink],
+    isValid: validation.isValid,
+  });
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     validation.revealAll();
@@ -105,5 +118,6 @@ export function createLoginForm(options: LoginFormOptions): LoginForm {
     submitButton,
     googleButton,
     switchButton: switchText.button,
+    setPending,
   };
 }

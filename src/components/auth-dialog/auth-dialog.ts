@@ -2,6 +2,7 @@ import { createElement } from '@/shared/lib/dom';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
+import type { PendingAction } from './auth-form-lock';
 import { createLoginForm } from './login-form';
 import { createRegisterForm } from './register-form';
 import './auth-dialog.scss';
@@ -105,20 +106,41 @@ export interface AuthDialogComponent extends Component {
   readonly open: (mode: DialogMode) => void;
   readonly close: () => void;
   readonly getOpenMode: () => DialogMode | undefined;
+  readonly setPending: (pending: PendingAction | undefined) => void;
 }
 
 export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
   let currentMode = DialogMode.Login;
+  let pendingAction: PendingAction | undefined;
 
   const closeButton = createElement('button', {
     className: 'auth-dialog__close',
     attributes: { type: 'button', 'aria-label': 'Close dialog' },
     children: [createCloseIcon()],
     onClick: () => {
-      dialog.close();
+      requestClose();
     },
   });
+
+  function requestClose(): void {
+    if (pendingAction === undefined) {
+      dialog.close();
+    }
+  }
+
+  function setPending(pending: PendingAction | undefined): void {
+    pendingAction = pending;
+    const isLocked = pending !== undefined;
+
+    closeButton.disabled = isLocked;
+    for (const tab of tabs) {
+      tab.button.disabled = isLocked;
+    }
+    loginForm.setPending(currentMode === DialogMode.Login ? pending : undefined);
+    registerForm.setPending(currentMode === DialogMode.Register ? pending : undefined);
+    panel.setAttribute('aria-busy', String(isLocked));
+  }
 
   function resetForms(): void {
     loginForm.validation.reset();
@@ -199,11 +221,18 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
 
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
-      dialog.close();
+      requestClose();
+    }
+  });
+
+  dialog.addEventListener('cancel', (event) => {
+    if (pendingAction !== undefined) {
+      event.preventDefault();
     }
   });
 
   dialog.addEventListener('close', () => {
+    setPending(undefined);
     resetForms();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
@@ -216,6 +245,12 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
   }
 
   function handleKeydown(event: KeyboardEvent): void {
+    // Browsers may skip "cancel" on a repeated Escape; block it at the source.
+    if (pendingAction !== undefined && event.key === 'Escape') {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key !== 'Tab') {
       return;
     }
@@ -269,6 +304,7 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
       }
     },
     getOpenMode: (): DialogMode | undefined => (dialog.open ? currentMode : undefined),
+    setPending,
     destroy: (): void => {
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
