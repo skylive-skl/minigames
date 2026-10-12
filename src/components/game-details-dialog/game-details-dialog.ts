@@ -1,6 +1,7 @@
 import { fetchLatestComments } from '@/shared/api/comments-api';
-import { fetchGameDetails } from '@/shared/api/games-api';
-import { ApiError, isAbortError } from '@/shared/api/http';
+import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
+import { ApiError, isAbortError, NETWORK_ERROR_STATUS } from '@/shared/api/http';
+import { requireSession } from '@/shared/auth/protected-action';
 import { getActiveSession, onSessionChange } from '@/shared/auth/session-store';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
@@ -16,6 +17,10 @@ import { createGameDetailsRecords } from './game-details-records';
 import './game-details-dialog.scss';
 
 const NOT_FOUND_STATUS = 404;
+
+const FAVORITE_GUEST_WARNING = 'Log in to add games to your favorites.';
+const FAVORITE_UNKNOWN_MESSAGE =
+  "We couldn't confirm the favorite change. Reopen the game to see its current state.";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -87,7 +92,11 @@ export function createGameDetailsDialog(
   });
 
   const hero = createGameDetailsHero({ closeButton });
-  const info = createGameDetailsInfo();
+  const info = createGameDetailsInfo({
+    onFavoriteClick: () => {
+      void handleFavoriteClick();
+    },
+  });
   const records = createGameDetailsRecords();
   const comments = createGameDetailsComments();
 
@@ -209,6 +218,53 @@ export function createGameDetailsDialog(
     }
   }
 
+  let isFavoritePending = false;
+
+  // Server-driven toggle: one request at a time, state taken only from the
+  // response, never replayed when the outcome is unknown.
+  async function handleFavoriteClick(): Promise<void> {
+    const slug = openSlug;
+
+    if (isFavoritePending || slug === undefined) {
+      return;
+    }
+
+    const session = requireSession(FAVORITE_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    isFavoritePending = true;
+    info.setFavoritePending(true);
+
+    try {
+      const result = await toggleFavorite(slug, session.email);
+      // Ignore answers for a game that is no longer shown.
+      if (openSlug === slug) {
+        info.setFavorite(result.isFavorited, result.likesCount);
+        showSnackbar({
+          message: result.isFavorited ? 'Added to favorites.' : 'Removed from favorites.',
+          variant: 'success',
+        });
+      }
+    } catch (error) {
+      const isOutcomeUnknown = error instanceof ApiError && error.status === NETWORK_ERROR_STATUS;
+      showSnackbar(
+        isOutcomeUnknown
+          ? { message: FAVORITE_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not update favorites. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      isFavoritePending = false;
+      info.setFavoritePending(false);
+    }
+  }
+
   function abortRequests(): void {
     abortController?.abort();
     commentsAbortController?.abort();
@@ -301,7 +357,6 @@ export function createGameDetailsDialog(
     abortRequests();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
-    info.resetFavorite();
     comments.reset();
     lastFocusedElement?.focus();
     if (!isHiding) {

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchLatestComments } from '@/shared/api/comments-api';
-import { fetchGameDetails } from '@/shared/api/games-api';
+import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
 import { ApiError } from '@/shared/api/http';
-import { logout, startSession } from '@/shared/auth/session-store';
+import { AUTH_DIALOG_OPEN_EVENT } from '@/shared/lib/app-events';
+import { getActiveSession, logout, startSession } from '@/shared/auth/session-store';
+import { SESSION_LIFETIME_MS } from '@/shared/auth/app-session';
 import type { GameComment, GameDetails } from '@/shared/types/game';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameDetailsDialog } from './game-details-dialog';
@@ -191,5 +193,140 @@ describe('game details dialog', () => {
       expect(textOf(gameDialog.element, '.game-details-dialog__game-title')).toBe('Tiny Glade');
     });
     expect(fetchGameDetails).toHaveBeenCalledTimes(2);
+  });
+});
+
+function favoriteButtonOf(root: Element): HTMLButtonElement {
+  const button = root.querySelector<HTMLButtonElement>('.game-details-dialog__button--favorite');
+  if (button === null) {
+    throw new Error('Favorite button is missing');
+  }
+  return button;
+}
+
+async function openLoadedDialog(): Promise<ReturnType<typeof createGameDetailsDialog>> {
+  const gameDialog = openDialog();
+  await vi.waitFor(() => {
+    expect(textOf(gameDialog.element, '.game-details-dialog__game-title')).toBe('Tiny Glade');
+  });
+  return gameDialog;
+}
+
+describe('favorites toggle', () => {
+  const authRequests = vi.fn();
+
+  beforeEach(() => {
+    vi.mocked(fetchGameDetails).mockResolvedValue(gameDetails);
+    vi.mocked(fetchLatestComments).mockResolvedValue({
+      data: [],
+      meta: { totalComments: 0, returnedCount: 0, sort: 'newest' },
+    });
+    document.addEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+  });
+
+  afterEach(async () => {
+    document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+    authRequests.mockClear();
+    vi.useRealTimers();
+    for (const gameDialog of mountedDialogs.splice(0)) {
+      gameDialog.destroy?.();
+    }
+    await logout();
+  });
+
+  it('initializes the button from the personalized details', async () => {
+    vi.mocked(fetchGameDetails).mockResolvedValue({ ...gameDetails, isLikedByCurrentUser: true });
+    startSession(profile);
+
+    const gameDialog = await openLoadedDialog();
+
+    expect(favoriteButtonOf(gameDialog.element).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('opens Auth with a warning for guests and sends no request', async () => {
+    const gameDialog = await openLoadedDialog();
+
+    favoriteButtonOf(gameDialog.element).click();
+
+    expect(toggleFavorite).not.toHaveBeenCalled();
+    expect(authRequests).toHaveBeenCalledOnce();
+    expect(showSnackbar).toHaveBeenCalledWith({
+      message: 'Log in to add games to your favorites.',
+      variant: 'warning',
+    });
+  });
+
+  it('does not send the request once the session has expired', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.setSystemTime(Date.now() + SESSION_LIFETIME_MS + 1);
+
+    favoriteButtonOf(gameDialog.element).click();
+
+    expect(toggleFavorite).not.toHaveBeenCalled();
+    expect(getActiveSession()).toBeUndefined();
+    expect(authRequests).toHaveBeenCalledOnce();
+  });
+
+  it('locks the button while pending and applies the server response', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    const pending = Promise.withResolvers<Awaited<ReturnType<typeof toggleFavorite>>>();
+    vi.mocked(toggleFavorite).mockReturnValue(pending.promise);
+    const button = favoriteButtonOf(gameDialog.element);
+
+    button.click();
+    button.click();
+
+    expect(toggleFavorite).toHaveBeenCalledOnce();
+    expect(toggleFavorite).toHaveBeenCalledWith('tiny-glade', 'alex@mail.com');
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.querySelector('.spinner')).not.toBeNull();
+
+    pending.resolve({ gameSlug: 'tiny-glade', isFavorited: true, likesCount: 31_201 });
+
+    await vi.waitFor(() => {
+      expect(button.disabled).toBe(false);
+    });
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(gameDialog.element.textContent).toContain('31.2K');
+    expect(showSnackbar).toHaveBeenCalledWith({
+      message: 'Added to favorites.',
+      variant: 'success',
+    });
+  });
+
+  it('keeps the confirmed state and unlocks when the server rejects', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.mocked(toggleFavorite).mockRejectedValue(new ApiError('Game not found: tiny-glade', 404));
+    const button = favoriteButtonOf(gameDialog.element);
+
+    button.click();
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Could not update favorites. Game not found: tiny-glade',
+        variant: 'error',
+      });
+    });
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('reports an unknown outcome without replaying the toggle', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.mocked(toggleFavorite).mockRejectedValue(new ApiError('The request timed out.', 0));
+
+    favoriteButtonOf(gameDialog.element).click();
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith(expect.objectContaining({ variant: 'warning' }));
+    });
+    expect(toggleFavorite).toHaveBeenCalledOnce();
+    expect(favoriteButtonOf(gameDialog.element).getAttribute('aria-pressed')).toBe('false');
   });
 });
