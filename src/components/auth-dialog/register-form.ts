@@ -7,12 +7,14 @@ import {
   createSubmitButton,
   createSwitchText,
 } from './auth-form-parts';
+import { createFormLock, type PendingAction } from './auth-form-lock';
 import { createFormValidation, type FormValidation } from './auth-form-validation';
 import { validateRegisterForm, type RegisterValues } from './auth-validation';
 
 export interface RegisterFormOptions {
   readonly headingId: string;
   readonly onSwitchToLogin: () => void;
+  readonly onSubmit?: (values: RegisterValues) => void;
 }
 
 export interface RegisterForm {
@@ -28,6 +30,7 @@ export interface RegisterForm {
   readonly submitButton: HTMLButtonElement;
   readonly googleButton: HTMLButtonElement;
   readonly switchButton: HTMLButtonElement;
+  readonly setPending: (pending: PendingAction | undefined) => void;
 }
 
 export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
@@ -105,9 +108,21 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     submitButton,
   });
 
+  const setPending = createFormLock({
+    fields: [username, email, password, confirmPassword],
+    submitButton,
+    pendingSubmitLabel: 'Creating account…',
+    googleButton,
+    pendingGoogleLabel: 'Connecting to Google…',
+    actions: [switchText.button],
+    isValid: validation.isValid,
+  });
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    validation.revealAll();
+    if (validation.revealAll()) {
+      options.onSubmit?.(validation.getValues());
+    }
   });
 
   return {
@@ -121,5 +136,6 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
     submitButton,
     googleButton,
     switchButton: switchText.button,
+    setPending,
   };
 }

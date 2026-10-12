@@ -1,7 +1,16 @@
+import {
+  getAuthErrorMessage,
+  registerWithEmail,
+  signInWithEmail,
+  type AuthProfile,
+} from '@/shared/auth/auth-service';
 import { createElement } from '@/shared/lib/dom';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
+import type { PendingAction } from './auth-form-lock';
+import type { LoginValues, RegisterValues } from './auth-validation';
 import { createLoginForm } from './login-form';
 import { createRegisterForm } from './register-form';
 import './auth-dialog.scss';
@@ -99,26 +108,86 @@ function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void 
 export interface AuthDialogOptions {
   readonly onClose?: () => void;
   readonly onModeChange?: (mode: DialogMode) => void;
+  readonly onAuthenticated?: (profile: AuthProfile) => void;
 }
 
 export interface AuthDialogComponent extends Component {
   readonly open: (mode: DialogMode) => void;
   readonly close: () => void;
   readonly getOpenMode: () => DialogMode | undefined;
+  readonly setPending: (pending: PendingAction | undefined) => void;
 }
 
 export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
   let currentMode = DialogMode.Login;
+  let pendingAction: PendingAction | undefined;
 
   const closeButton = createElement('button', {
     className: 'auth-dialog__close',
     attributes: { type: 'button', 'aria-label': 'Close dialog' },
     children: [createCloseIcon()],
     onClick: () => {
-      dialog.close();
+      requestClose();
     },
   });
+
+  function requestClose(): void {
+    if (pendingAction === undefined) {
+      dialog.close();
+    }
+  }
+
+  function setPending(pending: PendingAction | undefined): void {
+    pendingAction = pending;
+    const isLocked = pending !== undefined;
+
+    closeButton.disabled = isLocked;
+    for (const tab of tabs) {
+      tab.button.disabled = isLocked;
+    }
+    loginForm.setPending(currentMode === DialogMode.Login ? pending : undefined);
+    registerForm.setPending(currentMode === DialogMode.Register ? pending : undefined);
+    panel.setAttribute('aria-busy', String(isLocked));
+  }
+
+  async function authenticate(
+    action: PendingAction,
+    operation: () => Promise<AuthProfile>,
+  ): Promise<void> {
+    if (pendingAction !== undefined) {
+      return;
+    }
+
+    setPending(action);
+
+    let profile: AuthProfile;
+    try {
+      profile = await operation();
+    } catch (error) {
+      setPending(undefined);
+      showSnackbar({ message: getAuthErrorMessage(error), variant: 'error' });
+      return;
+    }
+
+    setPending(undefined);
+    options.onAuthenticated?.(profile);
+    dialog.close();
+  }
+
+  function handleLoginSubmit(values: LoginValues): void {
+    void authenticate('submit', () => signInWithEmail(values.email, values.password));
+  }
+
+  function handleRegisterSubmit(values: RegisterValues): void {
+    void authenticate('submit', () =>
+      registerWithEmail({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      }),
+    );
+  }
 
   function resetForms(): void {
     loginForm.validation.reset();
@@ -173,12 +242,14 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
     onSwitchToRegister: () => {
       switchMode(DialogMode.Register);
     },
+    onSubmit: handleLoginSubmit,
   });
   const registerForm = createRegisterForm({
     headingId: HEADING_IDS[DialogMode.Register],
     onSwitchToLogin: () => {
       switchMode(DialogMode.Login);
     },
+    onSubmit: handleRegisterSubmit,
   });
 
   const body = createElement('div', {
@@ -199,11 +270,18 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
 
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
-      dialog.close();
+      requestClose();
+    }
+  });
+
+  dialog.addEventListener('cancel', (event) => {
+    if (pendingAction !== undefined) {
+      event.preventDefault();
     }
   });
 
   dialog.addEventListener('close', () => {
+    setPending(undefined);
     resetForms();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
@@ -216,6 +294,12 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
   }
 
   function handleKeydown(event: KeyboardEvent): void {
+    // Browsers may skip "cancel" on a repeated Escape; block it at the source.
+    if (pendingAction !== undefined && event.key === 'Escape') {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key !== 'Tab') {
       return;
     }
@@ -269,6 +353,7 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
       }
     },
     getOpenMode: (): DialogMode | undefined => (dialog.open ? currentMode : undefined),
+    setPending,
     destroy: (): void => {
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();

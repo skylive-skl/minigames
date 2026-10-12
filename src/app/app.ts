@@ -2,9 +2,10 @@ import { createAuthDialog, isDialogMode } from '@/components/auth-dialog/auth-di
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
-import { ensureActiveSession, initSession } from '@/shared/auth/session-store';
+import { ensureActiveSession, initSession, startSession } from '@/shared/auth/session-store';
 import { onAuthDialogOpen, onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import {
   AUTH_QUERY_KEY,
   closeDialogInUrl,
@@ -34,6 +35,13 @@ export function createApp(): App {
     },
     onModeChange: (mode) => {
       replaceDialogInUrl(AUTH_QUERY_KEY, mode);
+    },
+    onAuthenticated: (profile) => {
+      startSession(profile);
+      showSnackbar({
+        message: `Welcome, ${profile.displayName === '' ? profile.email : profile.displayName}!`,
+        variant: 'success',
+      });
     },
   });
   const gameDetailsDialog = createGameDetailsDialog({
