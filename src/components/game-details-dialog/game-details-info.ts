@@ -2,12 +2,18 @@ import { createElement } from '@/shared/lib/dom';
 import { formatCompactNumber } from '@/shared/lib/format';
 import type { GameDetails } from '@/shared/types/game';
 import { createHeartIcon, createStarIcon } from '@/shared/ui/icon/icon';
+import { createSpinner } from '@/shared/ui/spinner/spinner';
 
 export interface GameDetailsInfoController {
   readonly element: HTMLElement;
   readonly update: (game: GameDetails) => void;
-  readonly isFavorite: () => boolean;
-  readonly resetFavorite: () => void;
+  // Server-confirmed state only (details response or favorite POST).
+  readonly setFavorite: (isFavorited: boolean, likesCount: number) => void;
+  readonly setFavoritePending: (isPending: boolean) => void;
+}
+
+export interface GameDetailsInfoOptions {
+  readonly onFavoriteClick?: () => void;
 }
 
 type SpecKey = keyof GameDetails['specs'];
@@ -21,10 +27,9 @@ const SPEC_LABELS: Readonly<Record<SpecKey, string>> = {
 
 const SPEC_KEYS: readonly SpecKey[] = ['genre', 'players', 'duration', 'price'];
 
-export function createGameDetailsInfo(): GameDetailsInfoController {
-  let isFavoriteActive = false;
-  let isInitiallyFavorite = false;
-
+export function createGameDetailsInfo(
+  options: GameDetailsInfoOptions = {},
+): GameDetailsInfoController {
   const title = createElement('h2', {
     className: 'game-details-dialog__game-title',
     attributes: {
@@ -112,17 +117,22 @@ export function createGameDetailsInfo(): GameDetailsInfoController {
     },
     children: [favoriteIcon, favoriteText],
     onClick: () => {
-      isFavoriteActive = !isFavoriteActive;
-      updateFavoriteState();
+      options.onFavoriteClick?.();
     },
   });
 
-  function updateFavoriteState(): void {
-    favoriteButton.setAttribute('aria-pressed', String(isFavoriteActive));
-    favoriteButton.classList.toggle(
-      'game-details-dialog__button--favorite-active',
-      isFavoriteActive,
-    );
+  const favoriteSpinner = createSpinner('game-details-dialog__button-spinner');
+
+  function setFavorite(isFavorited: boolean, likesCount: number): void {
+    favoriteButton.setAttribute('aria-pressed', String(isFavorited));
+    favoriteButton.classList.toggle('game-details-dialog__button--favorite-active', isFavorited);
+    likesValue.textContent = formatCompactNumber(likesCount);
+  }
+
+  function setFavoritePending(isPending: boolean): void {
+    favoriteButton.disabled = isPending;
+    favoriteButton.setAttribute('aria-busy', String(isPending));
+    favoriteButton.replaceChildren(isPending ? favoriteSpinner : favoriteIcon, favoriteText);
   }
 
   const actions = createElement('div', {
@@ -141,7 +151,6 @@ export function createGameDetailsInfo(): GameDetailsInfoController {
     update: (game: GameDetails): void => {
       title.textContent = game.name;
       ratingValue.textContent = game.rating.toFixed(1);
-      likesValue.textContent = formatCompactNumber(game.likesCount);
       description.textContent = game.fullDescription;
       for (const key of SPEC_KEYS) {
         const value = specValues.get(key);
@@ -149,14 +158,11 @@ export function createGameDetailsInfo(): GameDetailsInfoController {
           value.textContent = game.specs[key];
         }
       }
-      isInitiallyFavorite = game.isLikedByCurrentUser;
-      isFavoriteActive = isInitiallyFavorite;
-      updateFavoriteState();
+      // isLikedByCurrentUser is the favorite flag (false for guests).
+      setFavorite(game.isLikedByCurrentUser, game.likesCount);
+      setFavoritePending(false);
     },
-    isFavorite: (): boolean => isFavoriteActive,
-    resetFavorite: (): void => {
-      isFavoriteActive = isInitiallyFavorite;
-      updateFavoriteState();
-    },
+    setFavorite,
+    setFavoritePending,
   };
 }

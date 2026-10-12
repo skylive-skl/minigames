@@ -25,3 +25,9 @@ export interface CommentsMeta {
   readonly returnedCount: number;
   readonly sort: string;
 }
+
+// userEmail personalizes responses (isLikedByCurrentUser); guests omit it.
+export interface PersonalizedRequestOptions {
+  readonly userEmail?: string | undefined;
+  readonly signal?: AbortSignal | undefined;
+}

@@ -367,6 +367,11 @@
       }
     }
 
+    &--favorite:disabled {
+      cursor: progress;
+      opacity: var(--opacity-disabled);
+    }
+
     &--favorite-active {
       background-color: var(--color-secondary);
       border-color: var(--color-on-primary);
@@ -380,6 +385,11 @@
 
   &__button-icon {
     flex-shrink: 0;
+    width: var(--size-3);
+    height: var(--size-3);
+  }
+
+  &__button-spinner {
     width: var(--size-3);
     height: var(--size-3);
   }

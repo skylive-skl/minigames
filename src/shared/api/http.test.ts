@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { API_BASE_URL, ApiError, apiGet, isAbortError, NETWORK_ERROR_STATUS } from './http';
+import {
+  API_BASE_URL,
+  ApiError,
+  apiGet,
+  apiPost,
+  isAbortError,
+  NETWORK_ERROR_STATUS,
+} from './http';
 
 function mockFetchResponse(body: unknown, init: ResponseInit = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn(() => Promise.resolve(Response.json(body, { status: 200, ...init })));
@@ -78,6 +85,62 @@ describe('apiGet', () => {
     );
 
     await expect(apiGet('/games')).rejects.toBe(abortError);
+  });
+});
+
+describe('apiPost', () => {
+  it('sends a JSON body with POST and returns the parsed response', async () => {
+    const fetchMock = mockFetchResponse({ data: { ok: true } }, { status: 201 });
+
+    await expect(apiPost('/games/x/comments', { text: 'Hi' })).resolves.toEqual({
+      data: { ok: true },
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${API_BASE_URL}/games/x/comments`);
+    expect(init.method).toBe('POST');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(init.body).toBe('{"text":"Hi"}');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('rejects with the server message when the server refuses', async () => {
+    mockFetchResponse({ error: 'Authentication required' }, { status: 401 });
+
+    await expect(apiPost('/games/x/favorite', {})).rejects.toMatchObject({
+      status: 401,
+      message: 'Authentication required',
+    });
+  });
+
+  it('reports a timeout as an unknown outcome (status 0)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new DOMException('Timed out', 'TimeoutError'))),
+    );
+
+    await expect(apiPost('/games/x/favorite', {})).rejects.toMatchObject({
+      status: NETWORK_ERROR_STATUS,
+      message: 'The request timed out.',
+    });
+  });
+
+  it('combines a caller signal with the timeout and keeps aborts silent', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const request = apiPost('/games/x/favorite', {}, controller.signal);
+    controller.abort();
+
+    await expect(request).rejects.toSatisfy(isAbortError);
   });
 });
 
