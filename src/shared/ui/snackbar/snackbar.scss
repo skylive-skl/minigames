@@ -53,6 +53,11 @@
     border-color: var(--color-error);
   }
 
+  &--warning {
+    background: var(--color-warning-container);
+    border-color: var(--color-warning);
+  }
+
   &--leaving {
     animation: snackbar-leave 0.2s ease-in forwards;
 

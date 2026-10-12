@@ -21,6 +21,18 @@ import {
   type RouteState,
 } from './router';
 
+const ALREADY_AUTHENTICATED_MESSAGE = 'You are already logged in.';
+
+function notifyAlreadyAuthenticated(): void {
+  showSnackbar({ message: ALREADY_AUTHENTICATED_MESSAGE, variant: 'info' });
+}
+
+// Auth opens for guests only; a signed-in user's ?auth= is dropped.
+function isAuthRequested(state: RouteState): boolean {
+  const mode = state.params.get(AUTH_QUERY_KEY);
+  return mode !== null && isDialogMode(mode) && ensureActiveSession() === undefined;
+}
+
 export interface App {
   readonly element: HTMLElement;
   readonly start: () => void;
@@ -72,20 +84,36 @@ export function createApp(): App {
 
     if (slug === null) {
       gameDetailsDialog.close();
+    } else if (isAuthRequested(state)) {
+      // Only one dialog at a time: Auth takes over and Game Details comes
+      // back (reloaded for the current session) once ?auth= leaves the URL.
+      gameDetailsDialog.hide();
     } else if (gameDetailsDialog.getOpenSlug() !== slug) {
       gameDetailsDialog.open(slug);
     }
   }
 
+  // UI entry point: a signed-in user never gets an Auth history entry.
   onAuthDialogOpen((mode) => {
-    openDialogInUrl(AUTH_QUERY_KEY, mode);
+    if (ensureActiveSession() === undefined) {
+      openDialogInUrl(AUTH_QUERY_KEY, mode);
+    } else {
+      notifyAlreadyAuthenticated();
+    }
   });
 
+  // URL and history entry points (deep links, Back/Forward). An expired or
+  // invalid session has already been recovered to guest mode by the
+  // before-route check, so ?auth= opens normally for guests.
   function syncAuthDialog(state: RouteState): void {
     const mode = state.params.get(AUTH_QUERY_KEY);
 
     if (mode === null) {
       authDialog.close();
+    } else if (ensureActiveSession() !== undefined) {
+      // Drop only "auth" in place: path, other params and hash stay.
+      updateQuery({ [AUTH_QUERY_KEY]: undefined }, { replace: true });
+      notifyAlreadyAuthenticated();
     } else if (isDialogMode(mode)) {
       authDialog.open(mode);
     } else {

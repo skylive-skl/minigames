@@ -54,7 +54,8 @@ export function getCurrentRoute(): RouteName {
 
 export function navigate(to: string, options: NavigateOptions = {}): void {
   const href = buildHref(to);
-  const currentHref = `${globalThis.location.pathname}${globalThis.location.search}`;
+  const { pathname, search, hash } = globalThis.location;
+  const currentHref = `${pathname}${search}${hash}`;
 
   if (href === currentHref && options.replace !== true) {
     return;
@@ -81,7 +82,10 @@ export function updateQuery(patch: QueryPatch, options: NavigateOptions = {}): v
   }
 
   const query = params.toString();
-  navigate(query === '' ? `/${path}` : `/${path}?${query}`, options);
+  // Query changes keep the current fragment (legacy "#/route" hashes excepted).
+  const { hash } = globalThis.location;
+  const fragment = hash.startsWith(LEGACY_HASH_PREFIX) ? '' : hash;
+  navigate(`${query === '' ? `/${path}` : `/${path}?${query}`}${fragment}`, options);
 }
 
 export type RouteChangeListener = (state: RouteState) => void;

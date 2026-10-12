@@ -56,6 +56,9 @@ export interface GameDetailsDialogOptions {
 export interface GameDetailsDialogComponent extends Component {
   readonly open: (slug?: string) => void;
   readonly close: () => void;
+  // Closes without onClose, so the game stays in the URL: used while Auth
+  // temporarily replaces Game Details.
+  readonly hide: () => void;
   readonly getOpenSlug: () => string | undefined;
 }
 
@@ -253,6 +256,17 @@ export function createGameDetailsDialog(
     closeButton.focus();
   };
 
+  let isHiding = false;
+
+  const hideDialog = (): void => {
+    if (!dialog.open) {
+      return;
+    }
+    isHiding = true;
+    dialog.close();
+    isHiding = false;
+  };
+
   const closeDialog = (): void => {
     if (dialog.open) {
       dialog.close();
@@ -273,13 +287,16 @@ export function createGameDetailsDialog(
     info.resetFavorite();
     comments.reset();
     lastFocusedElement?.focus();
-    options.onClose?.();
+    if (!isHiding) {
+      options.onClose?.();
+    }
   });
 
   return {
     element: dialog,
     open: openDialog,
     close: closeDialog,
+    hide: hideDialog,
     getOpenSlug: (): string | undefined => (dialog.open ? openSlug : undefined),
     destroy: (): void => {
       abortRequests();
