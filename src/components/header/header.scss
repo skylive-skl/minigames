@@ -148,6 +148,31 @@
   }
 }
 
+.header__button--logout {
+  background-color: var(--color-bg);
+  color: var(--color-on-primary);
+
+  @include bp.hover {
+    background-color: var(--color-surface-low);
+  }
+
+  // Figma tablet header (52:1988) keeps Log Out next to the burger.
+  @media (min-width: 481px) {
+    display: inline-flex;
+  }
+}
+
+// Figma 2:1687: the profile shows on desktop only, 32px before Log Out.
+.header__profile {
+  display: none;
+
+  @include bp.desktop-up {
+    display: inline-flex;
+    max-width: var(--size-header-profile);
+    margin-right: var(--size-2);
+  }
+}
+
 .header__burger {
   @include mix.button-reset;
   @include mix.focus-ring;

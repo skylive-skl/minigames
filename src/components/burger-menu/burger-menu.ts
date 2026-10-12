@@ -2,6 +2,9 @@ import { HOME_HREF, LIBRARY_HREF } from '@/app/paths';
 import { getCurrentRoute, onRouteChange } from '@/app/router';
 import type { RouteName } from '@/app/routes';
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
+import { createUserProfile } from '@/components/user-profile/user-profile';
+import type { AppSession } from '@/shared/auth/app-session';
+import { getActiveSession, logout, onSessionChange } from '@/shared/auth/session-store';
 import { dispatchAuthDialogOpen } from '@/shared/lib/app-events';
 import {
   isBurgerMenuOpen,
@@ -148,10 +151,30 @@ export function createBurgerMenu(): Component {
     },
   });
 
-  const actions = createElement('div', {
-    className: 'burger-menu__actions',
-    children: [loginButton, signUpButton],
+  const profile = createUserProfile('menu');
+  const logoutButton = createElement('button', {
+    className: 'burger-menu__button burger-menu__button--outline',
+    text: 'Log Out',
+    attributes: { type: 'button' },
+    onClick: () => {
+      closeMenu();
+      void logout();
+    },
   });
+
+  const actions = createElement('div', { className: 'burger-menu__actions' });
+
+  function renderActions(session: AppSession | undefined): void {
+    if (session === undefined) {
+      actions.replaceChildren(loginButton, signUpButton);
+      return;
+    }
+    profile.update(session);
+    actions.replaceChildren(profile.element, logoutButton);
+  }
+
+  renderActions(getActiveSession());
+  const unsubscribeSession = onSessionChange(renderActions);
 
   const panel = createElement('div', {
     className: 'burger-menu__panel',
@@ -241,6 +264,7 @@ export function createBurgerMenu(): Component {
     destroy: (): void => {
       unsubscribeBurger();
       unsubscribeRoute();
+      unsubscribeSession();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
     },
