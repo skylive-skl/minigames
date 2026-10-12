@@ -137,6 +137,33 @@ describe('game details dialog', () => {
     );
   });
 
+  it('locks the comment form for guests and unlocks it after sign-in', async () => {
+    const gameDialog = await openLoadedDialog();
+    const textarea = gameDialog.element.querySelector('textarea');
+    // Kept as references: the reload after sign-in swaps the body for skeletons.
+    const avatar = gameDialog.element.querySelector('.game-details-dialog__avatar--user');
+
+    expect(textarea?.disabled).toBe(true);
+
+    startSession(profile);
+
+    expect(textarea?.disabled).toBe(false);
+    expect(avatar?.textContent).toBe('A');
+  });
+
+  it('clears the comment draft when another game is opened', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    const textarea = gameDialog.element.querySelector('textarea');
+    if (textarea !== null) {
+      textarea.value = 'Draft for Tiny Glade';
+    }
+
+    gameDialog.open('cat-chess');
+
+    expect(textarea?.value).toBe('');
+  });
+
   it('does not reload a closed dialog when the session changes', () => {
     const gameDialog = openDialog();
     gameDialog.close();

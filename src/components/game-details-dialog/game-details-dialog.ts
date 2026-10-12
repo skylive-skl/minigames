@@ -280,6 +280,7 @@ export function createGameDetailsDialog(
 
     const controller = new AbortController();
     abortController = controller;
+    comments.setSession(getActiveSession());
     showLoading();
     // Comments load in parallel and keep their own loading/error state.
     void loadComments(slug);
@@ -305,6 +306,10 @@ export function createGameDetailsDialog(
   }
 
   const openDialog = (slug?: string): void => {
+    // A newly opened game always starts with an empty comment field.
+    if (openSlug !== slug) {
+      comments.reset();
+    }
     openSlug = slug;
     void loadDetails(slug);
 
