@@ -1,6 +1,7 @@
-import { fetchLatestComments } from '@/shared/api/comments-api';
+import { fetchLatestComments, postComment } from '@/shared/api/comments-api';
 import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
 import { ApiError, isAbortError, NETWORK_ERROR_STATUS } from '@/shared/api/http';
+import { getCommentAuthorName } from '@/shared/auth/profile';
 import { requireSession } from '@/shared/auth/protected-action';
 import { getActiveSession, onSessionChange } from '@/shared/auth/session-store';
 import { createElement } from '@/shared/lib/dom';
@@ -17,6 +18,15 @@ import { createGameDetailsRecords } from './game-details-records';
 import './game-details-dialog.scss';
 
 const NOT_FOUND_STATUS = 404;
+
+// A lost connection or timeout on a POST: the server may have applied it.
+function isOutcomeUnknown(error: unknown): boolean {
+  return error instanceof ApiError && error.status === NETWORK_ERROR_STATUS;
+}
+
+const COMMENT_GUEST_WARNING = 'Log in to write a comment.';
+const COMMENT_UNKNOWN_MESSAGE =
+  "We couldn't confirm your comment was posted. Your text is kept; refresh the comments before sending it again.";
 
 const FAVORITE_GUEST_WARNING = 'Log in to add games to your favorites.';
 const FAVORITE_UNKNOWN_MESSAGE =
@@ -98,7 +108,11 @@ export function createGameDetailsDialog(
     },
   });
   const records = createGameDetailsRecords();
-  const comments = createGameDetailsComments();
+  const comments = createGameDetailsComments({
+    onSubmit: (text) => {
+      void handleCommentSubmit(text);
+    },
+  });
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
@@ -215,6 +229,53 @@ export function createGameDetailsDialog(
         void loadComments(slug);
       });
       showSnackbar({ message: 'Failed to load comments.', variant: 'error' });
+    }
+  }
+
+  let isCommentPending = false;
+
+  async function handleCommentSubmit(text: string): Promise<void> {
+    const slug = openSlug;
+
+    if (isCommentPending || slug === undefined) {
+      return;
+    }
+
+    const session = requireSession(COMMENT_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    isCommentPending = true;
+    comments.setPending(true);
+
+    try {
+      await postComment(slug, {
+        userEmail: session.email,
+        authorName: getCommentAuthorName(session),
+        text,
+      });
+      comments.reset();
+      showSnackbar({ message: 'Comment posted.', variant: 'success' });
+      if (openSlug === slug) {
+        // The POST answer has no total: refresh the latest three and the count.
+        void loadComments(slug);
+      }
+    } catch (error) {
+      // The typed text stays in the field in every failure case.
+      showSnackbar(
+        isOutcomeUnknown(error)
+          ? { message: COMMENT_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not post the comment. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      isCommentPending = false;
+      comments.setPending(false);
     }
   }
 
