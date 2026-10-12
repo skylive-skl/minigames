@@ -100,6 +100,24 @@ describe('updateQuery', () => {
     expect(parameters.has('page')).toBe(false);
   });
 
+  it('keeps the URL hash when the query changes', () => {
+    globalThis.history.replaceState(undefined, '', `${BASE}library?auth=login&page=2#games`);
+
+    updateQuery({ auth: undefined }, { replace: true });
+
+    expect(globalThis.location.pathname).toBe(`${BASE}library`);
+    expect(globalThis.location.search).toBe('?page=2');
+    expect(globalThis.location.hash).toBe('#games');
+  });
+
+  it('does not carry a legacy "#/route" hash into the new URL', () => {
+    globalThis.history.replaceState(undefined, '', `${BASE}library#/library`);
+
+    updateQuery({ page: 2 });
+
+    expect(globalThis.location.hash).toBe('');
+  });
+
   it('drops the question mark when no keys remain', () => {
     globalThis.history.replaceState(undefined, '', `${BASE}library?game=tiny-glade`);
 
