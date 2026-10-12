@@ -2,13 +2,7 @@ import { createElement } from '@/shared/lib/dom';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { GameComment } from '@/shared/types/game';
 import { createHeartIcon } from '@/shared/ui/icon/icon';
-
-// Avatar fills from the Figma comment cards (2:1478, 2:1490, 2:1502).
-const AVATAR_COLORS: readonly string[] = [
-  'var(--color-avatar-3)',
-  'var(--color-primary)',
-  'var(--color-avatar-5)',
-];
+import { getAvatarInitial, type AvatarColorPicker } from './comment-avatar';
 
 const GUEST_LIKE_HINT = 'Log in to like comments';
 
@@ -17,8 +11,8 @@ function formatLikes(count: number): string {
 }
 
 // Read-only in Story 3: likes are shown but toggling them requires auth (Story 4).
-function createCommentItem(comment: GameComment, index: number): HTMLLIElement {
-  const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
+function createCommentItem(comment: GameComment, getAvatarColor: AvatarColorPicker): HTMLLIElement {
+  const avatarColor = getAvatarColor(comment.authorName);
 
   const avatar = createElement('div', {
     className: 'game-details-dialog__avatar',
@@ -26,7 +20,7 @@ function createCommentItem(comment: GameComment, index: number): HTMLLIElement {
       'aria-hidden': 'true',
       style: `background-color: ${avatarColor};`,
     },
-    text: comment.authorName.charAt(0).toUpperCase(),
+    text: getAvatarInitial(comment.authorName),
   });
 
   const author = createElement('span', {
@@ -86,10 +80,13 @@ function createCommentItem(comment: GameComment, index: number): HTMLLIElement {
   });
 }
 
-export function createCommentsList(comments: readonly GameComment[]): HTMLUListElement {
+export function createCommentsList(
+  comments: readonly GameComment[],
+  getAvatarColor: AvatarColorPicker,
+): HTMLUListElement {
   return createElement('ul', {
     className: 'game-details-dialog__comments-list',
     attributes: { 'aria-label': 'Comments list' },
-    children: comments.map((comment, index) => createCommentItem(comment, index)),
+    children: comments.map((comment) => createCommentItem(comment, getAvatarColor)),
   });
 }
