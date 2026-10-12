@@ -1,6 +1,9 @@
-import { fetchLatestComments } from '@/shared/api/comments-api';
-import { fetchGameDetails } from '@/shared/api/games-api';
-import { ApiError, isAbortError } from '@/shared/api/http';
+import { fetchLatestComments, postComment, toggleCommentLike } from '@/shared/api/comments-api';
+import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
+import { ApiError, isAbortError, NETWORK_ERROR_STATUS } from '@/shared/api/http';
+import { getCommentAuthorName } from '@/shared/auth/profile';
+import { requireSession } from '@/shared/auth/protected-action';
+import { getActiveSession, onSessionChange } from '@/shared/auth/session-store';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { GameDetails } from '@/shared/types/game';
@@ -9,12 +12,30 @@ import { createCloseIcon } from '@/shared/ui/icon/icon';
 import { createSkeleton, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameDetailsComments } from './game-details-comments';
+import type { CommentLikeControl } from './game-details-comments-list';
 import { createGameDetailsHero } from './game-details-hero';
 import { createGameDetailsInfo } from './game-details-info';
 import { createGameDetailsRecords } from './game-details-records';
 import './game-details-dialog.scss';
 
 const NOT_FOUND_STATUS = 404;
+
+// A lost connection or timeout on a POST: the server may have applied it.
+function isOutcomeUnknown(error: unknown): boolean {
+  return error instanceof ApiError && error.status === NETWORK_ERROR_STATUS;
+}
+
+const COMMENT_GUEST_WARNING = 'Log in to write a comment.';
+const COMMENT_UNKNOWN_MESSAGE =
+  "We couldn't confirm your comment was posted. Your text is kept; refresh the comments before sending it again.";
+
+const LIKE_GUEST_WARNING = 'Log in to like comments.';
+const LIKE_UNKNOWN_MESSAGE =
+  "We couldn't confirm your like. Reopen the game to see the comment's current state.";
+
+const FAVORITE_GUEST_WARNING = 'Log in to add games to your favorites.';
+const FAVORITE_UNKNOWN_MESSAGE =
+  "We couldn't confirm the favorite change. Reopen the game to see its current state.";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -56,6 +77,9 @@ export interface GameDetailsDialogOptions {
 export interface GameDetailsDialogComponent extends Component {
   readonly open: (slug?: string) => void;
   readonly close: () => void;
+  // Closes without onClose, so the game stays in the URL: used while Auth
+  // temporarily replaces Game Details.
+  readonly hide: () => void;
   readonly getOpenSlug: () => string | undefined;
 }
 
@@ -83,9 +107,20 @@ export function createGameDetailsDialog(
   });
 
   const hero = createGameDetailsHero({ closeButton });
-  const info = createGameDetailsInfo();
+  const info = createGameDetailsInfo({
+    onFavoriteClick: () => {
+      void handleFavoriteClick();
+    },
+  });
   const records = createGameDetailsRecords();
-  const comments = createGameDetailsComments();
+  const comments = createGameDetailsComments({
+    onSubmit: (text) => {
+      void handleCommentSubmit(text);
+    },
+    onLike: (commentId, control) => {
+      void handleCommentLike(commentId, control);
+    },
+  });
 
   const body = createElement('div', {
     className: 'game-details-dialog__body',
@@ -189,7 +224,10 @@ export function createGameDetailsDialog(
     comments.showLoading();
 
     try {
-      const response = await fetchLatestComments(slug, controller.signal);
+      const response = await fetchLatestComments(slug, {
+        userEmail: getActiveSession()?.email,
+        signal: controller.signal,
+      });
       comments.showComments(response.data, response.meta.totalComments);
     } catch (error) {
       if (isAbortError(error)) {
@@ -199,6 +237,136 @@ export function createGameDetailsDialog(
         void loadComments(slug);
       });
       showSnackbar({ message: 'Failed to load comments.', variant: 'error' });
+    }
+  }
+
+  let isCommentPending = false;
+
+  async function handleCommentSubmit(text: string): Promise<void> {
+    const slug = openSlug;
+
+    if (isCommentPending || slug === undefined) {
+      return;
+    }
+
+    const session = requireSession(COMMENT_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    isCommentPending = true;
+    comments.setPending(true);
+
+    try {
+      await postComment(slug, {
+        userEmail: session.email,
+        authorName: getCommentAuthorName(session),
+        text,
+      });
+      comments.reset();
+      showSnackbar({ message: 'Comment posted.', variant: 'success' });
+      if (openSlug === slug) {
+        // The POST answer has no total: refresh the latest three and the count.
+        void loadComments(slug);
+      }
+    } catch (error) {
+      // The typed text stays in the field in every failure case.
+      showSnackbar(
+        isOutcomeUnknown(error)
+          ? { message: COMMENT_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not post the comment. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      isCommentPending = false;
+      comments.setPending(false);
+    }
+  }
+
+  // One in-flight toggle per comment; state comes only from the response.
+  const pendingLikes = new Set<string>();
+
+  async function handleCommentLike(commentId: string, control: CommentLikeControl): Promise<void> {
+    if (pendingLikes.has(commentId)) {
+      return;
+    }
+
+    const session = requireSession(LIKE_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    pendingLikes.add(commentId);
+    control.setPending(true);
+
+    try {
+      const result = await toggleCommentLike(commentId, session.email);
+      control.setState(result.isLikedByCurrentUser, result.likesCount);
+    } catch (error) {
+      showSnackbar(
+        isOutcomeUnknown(error)
+          ? { message: LIKE_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not update the like. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      pendingLikes.delete(commentId);
+      control.setPending(false);
+    }
+  }
+
+  let isFavoritePending = false;
+
+  // Server-driven toggle: one request at a time, state taken only from the
+  // response, never replayed when the outcome is unknown.
+  async function handleFavoriteClick(): Promise<void> {
+    const slug = openSlug;
+
+    if (isFavoritePending || slug === undefined) {
+      return;
+    }
+
+    const session = requireSession(FAVORITE_GUEST_WARNING);
+
+    if (session === undefined) {
+      return;
+    }
+
+    isFavoritePending = true;
+    info.setFavoritePending(true);
+
+    try {
+      const result = await toggleFavorite(slug, session.email);
+      // Ignore answers for a game that is no longer shown.
+      if (openSlug === slug) {
+        info.setFavorite(result.isFavorited, result.likesCount);
+        showSnackbar({
+          message: result.isFavorited ? 'Added to favorites.' : 'Removed from favorites.',
+          variant: 'success',
+        });
+      }
+    } catch (error) {
+      const isOutcomeUnknown = error instanceof ApiError && error.status === NETWORK_ERROR_STATUS;
+      showSnackbar(
+        isOutcomeUnknown
+          ? { message: FAVORITE_UNKNOWN_MESSAGE, variant: 'warning' }
+          : {
+              message:
+                `Could not update favorites. ${error instanceof Error ? error.message : ''}`.trim(),
+              variant: 'error',
+            },
+      );
+    } finally {
+      isFavoritePending = false;
+      info.setFavoritePending(false);
     }
   }
 
@@ -217,12 +385,18 @@ export function createGameDetailsDialog(
 
     const controller = new AbortController();
     abortController = controller;
+    comments.setSession(getActiveSession());
     showLoading();
     // Comments load in parallel and keep their own loading/error state.
     void loadComments(slug);
 
     try {
-      showDetails(await fetchGameDetails(slug, controller.signal));
+      showDetails(
+        await fetchGameDetails(slug, {
+          userEmail: getActiveSession()?.email,
+          signal: controller.signal,
+        }),
+      );
     } catch (error) {
       if (isAbortError(error)) {
         return;
@@ -237,6 +411,10 @@ export function createGameDetailsDialog(
   }
 
   const openDialog = (slug?: string): void => {
+    // A newly opened game always starts with an empty comment field.
+    if (openSlug !== slug) {
+      comments.reset();
+    }
     openSlug = slug;
     void loadDetails(slug);
 
@@ -251,6 +429,25 @@ export function createGameDetailsDialog(
     lockBodyScroll();
     document.addEventListener('keydown', handleKeydown);
     closeButton.focus();
+  };
+
+  // Sign-in, logout or expiry while the dialog is open: reload so favorite
+  // and like states match the current user (or guest).
+  const unsubscribeSession = onSessionChange(() => {
+    if (openSlug !== undefined && dialog.open) {
+      void loadDetails(openSlug);
+    }
+  });
+
+  let isHiding = false;
+
+  const hideDialog = (): void => {
+    if (!dialog.open) {
+      return;
+    }
+    isHiding = true;
+    dialog.close();
+    isHiding = false;
   };
 
   const closeDialog = (): void => {
@@ -270,18 +467,21 @@ export function createGameDetailsDialog(
     abortRequests();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
-    info.resetFavorite();
     comments.reset();
     lastFocusedElement?.focus();
-    options.onClose?.();
+    if (!isHiding) {
+      options.onClose?.();
+    }
   });
 
   return {
     element: dialog,
     open: openDialog,
     close: closeDialog,
+    hide: hideDialog,
     getOpenSlug: (): string | undefined => (dialog.open ? openSlug : undefined),
     destroy: (): void => {
+      unsubscribeSession();
       abortRequests();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();

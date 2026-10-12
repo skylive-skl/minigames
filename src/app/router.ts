@@ -54,7 +54,8 @@ export function getCurrentRoute(): RouteName {
 
 export function navigate(to: string, options: NavigateOptions = {}): void {
   const href = buildHref(to);
-  const currentHref = `${globalThis.location.pathname}${globalThis.location.search}`;
+  const { pathname, search, hash } = globalThis.location;
+  const currentHref = `${pathname}${search}${hash}`;
 
   if (href === currentHref && options.replace !== true) {
     return;
@@ -81,7 +82,10 @@ export function updateQuery(patch: QueryPatch, options: NavigateOptions = {}): v
   }
 
   const query = params.toString();
-  navigate(query === '' ? `/${path}` : `/${path}?${query}`, options);
+  // Query changes keep the current fragment (legacy "#/route" hashes excepted).
+  const { hash } = globalThis.location;
+  const fragment = hash.startsWith(LEGACY_HASH_PREFIX) ? '' : hash;
+  navigate(`${query === '' ? `/${path}` : `/${path}?${query}`}${fragment}`, options);
 }
 
 export type RouteChangeListener = (state: RouteState) => void;
@@ -93,6 +97,21 @@ export function onRouteChange(listener: RouteChangeListener): () => void {
   return () => {
     routeListeners.delete(listener);
   };
+}
+
+const beforeRouteListeners = new Set<() => void>();
+
+export function onBeforeRouteChange(listener: () => void): () => void {
+  beforeRouteListeners.add(listener);
+  return () => {
+    beforeRouteListeners.delete(listener);
+  };
+}
+
+function notifyBeforeRouteChange(): void {
+  for (const listener of beforeRouteListeners) {
+    listener();
+  }
 }
 
 function notifyRouteChange(state: RouteState): void {
@@ -166,6 +185,7 @@ export function createRouter(outlet: HTMLElement): Router {
   let currentPath: string | undefined;
 
   function render(): void {
+    notifyBeforeRouteChange();
     const state = getRouteState();
 
     // Same path = same page instance; only the query changed.

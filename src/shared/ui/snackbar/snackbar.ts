@@ -2,7 +2,7 @@ import { createElement } from '@/shared/lib/dom';
 import { createCloseIcon } from '@/shared/ui/icon/icon';
 import './snackbar.scss';
 
-export type SnackbarVariant = 'success' | 'error' | 'info';
+export type SnackbarVariant = 'success' | 'error' | 'warning' | 'info';
 
 export interface SnackbarOptions {
   readonly message: string;

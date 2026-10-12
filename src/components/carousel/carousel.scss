@@ -110,115 +110,78 @@
   }
 }
 
+// Flex ratios of the visible cards per breakpoint (Figma widths in px). The
+// track is wider than the viewport by one edge-sized card plus a gap on each
+// side, so the outer cards wait just out of view, ready to slide in.
 .carousel__track {
-  position: relative;
+  --carousel-gap: var(--size-1);
+  --carousel-edge: 56;
+  --carousel-side: 0;
+  --carousel-center: 218;
+  --carousel-visible-gaps: 2;
+  --carousel-visible-total: calc(
+    2 * var(--carousel-edge) + 2 * var(--carousel-side) + var(--carousel-center)
+  );
+  --carousel-outer-width: calc(
+    (100% - var(--carousel-visible-gaps) * var(--carousel-gap)) * var(--carousel-edge) /
+      var(--carousel-visible-total)
+  );
+
   display: flex;
   align-items: stretch;
-  justify-content: center;
-  width: 100%;
-  gap: var(--size-1);
-  padding: 0;
-  padding-bottom: 1rem;
-  margin: 0;
+  width: calc(100% + 2 * (var(--carousel-outer-width) + var(--carousel-gap)));
+  gap: var(--carousel-gap);
+  padding: 0 0 var(--size-2);
+  margin: 0 0 0 calc(-1 * (var(--carousel-outer-width) + var(--carousel-gap)));
   list-style: none;
   will-change: transform;
+
+  @media (min-width: 481px) {
+    --carousel-edge: 105;
+    --carousel-center: 448;
+  }
+
+  @include bp.desktop-up {
+    --carousel-edge: 120;
+    --carousel-side: 288;
+    --carousel-center: 816;
+    --carousel-visible-gaps: 4;
+  }
 
   &--animating {
     transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   }
-
-  &--slide-next {
-    .carousel__item--center .game-card {
-      transform: scale(0.92);
-    }
-
-    .carousel__item--side-right .game-card {
-      transform: scale(1.1);
-    }
-  }
-
-  &--slide-prev {
-    .carousel__item--center .game-card {
-      transform: scale(0.92);
-    }
-
-    .carousel__item--side-left .game-card {
-      transform: scale(1.1);
-    }
-  }
 }
 
 .carousel__item {
-  flex-shrink: 1;
+  flex: 0 1 0;
   min-width: 0;
-  overflow: visible;
-  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 
-  &--outer-left {
-    position: absolute;
-    top: 0;
-    right: calc(100% + var(--size-1));
-    bottom: 1rem;
-    width: 120px;
-
-    @include bp.mobile-down {
-      width: 56px;
-    }
-
-    @media (min-width: 481px) and (max-width: 768px) {
-      width: 105px;
-    }
+  .carousel__track--animating & {
+    transition: flex-grow 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
-  &--outer-right {
-    position: absolute;
-    top: 0;
-    bottom: 1rem;
-    left: calc(100% + var(--size-1));
-    width: 120px;
-
-    @include bp.mobile-down {
-      width: 56px;
-    }
-
-    @media (min-width: 481px) and (max-width: 768px) {
-      width: 105px;
-    }
-  }
-
+  &--outer-left,
+  &--outer-right,
   &--edge-left,
   &--edge-right {
-    flex: 56 56 0;
-
-    @media (min-width: 481px) {
-      flex: 105 105 0;
-    }
-
-    @include bp.desktop-up {
-      flex: 120 120 0;
-    }
-  }
-
-  &--center {
-    flex: 218 218 0;
-
-    @media (min-width: 481px) {
-      flex: 448 448 0;
-    }
-
-    @include bp.desktop-up {
-      flex: 816 816 0;
-    }
+    flex-grow: var(--carousel-edge);
   }
 
   &--side-left,
   &--side-right {
-    display: none;
+    flex-grow: var(--carousel-side);
+  }
 
-    @include bp.desktop-up {
-      display: block;
-      flex: 288 288 0;
-    }
+  &--center {
+    flex-grow: var(--carousel-center);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel__track--animating,
+  .carousel__track--animating .carousel__item {
+    transition: none;
   }
 }
 
@@ -283,20 +246,28 @@
   pointer-events: none;
 }
 
+// Fades in once the card is wide enough, so a card growing into the center
+// does not flash its title.
 .game-card__overlay {
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: var(--size-05);
   padding: var(--size-1);
   background: linear-gradient(0deg, rgb(0 0 0 / 80%) 50%, rgb(0 0 0 / 0%) 100%);
   pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
 
   @container (min-width: 284px) {
-    display: flex;
+    visibility: visible;
+    opacity: 1;
   }
 }
 

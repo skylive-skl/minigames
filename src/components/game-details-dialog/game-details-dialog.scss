@@ -140,13 +140,18 @@
   }
 
   &__comment-input:disabled,
-  &__comment-submit:disabled,
-  &__comment-like-button:disabled {
+  &__comment-submit:disabled {
     cursor: not-allowed;
   }
 
   &__comment-submit:disabled {
-    opacity: 0.5;
+    opacity: var(--opacity-disabled);
+  }
+
+  // Only locked while its like request is pending.
+  &__comment-like-button:disabled {
+    cursor: progress;
+    opacity: var(--opacity-disabled);
   }
 
   &__skeleton-records {
@@ -367,6 +372,11 @@
       }
     }
 
+    &--favorite:disabled {
+      cursor: progress;
+      opacity: var(--opacity-disabled);
+    }
+
     &--favorite-active {
       background-color: var(--color-secondary);
       border-color: var(--color-on-primary);
@@ -380,6 +390,11 @@
 
   &__button-icon {
     flex-shrink: 0;
+    width: var(--size-3);
+    height: var(--size-3);
+  }
+
+  &__button-spinner {
     width: var(--size-3);
     height: var(--size-3);
   }
@@ -471,9 +486,20 @@
   // Comments: Figma 2:1468
   &__comment-form {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: var(--size-2);
     margin-bottom: var(--size-2);
+  }
+
+  // Sits under the textarea: avatar width + form gap.
+  &__comment-hint {
+    @include type.body-small;
+
+    flex-basis: 100%;
+    margin-top: calc(var(--size-1) * -1);
+    padding-left: calc(var(--size-4) - var(--size-05) + var(--size-2));
+    color: var(--color-error);
   }
 
   &__avatar {

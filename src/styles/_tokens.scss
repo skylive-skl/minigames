@@ -25,6 +25,8 @@
   --color-success: #1e7a46;
   --color-success-container: #e3f5ea;
   --color-info-container: var(--color-secondary);
+  --color-warning: #9a5b00;
+  --color-warning-container: #fff3dc;
 
   // Dev CTA
   --color-cta-illustration-bg: #bfc3ec;
@@ -49,7 +51,7 @@
   --color-avatar-4: #ffc6ff;
   --color-avatar-5: #e8dff5;
 
-  // Spacing (size-05 = 4px, далее шаг 8px)
+  // Spacing
   --size-05: 4px;
   --size-1: 8px;
   --size-2: 16px;
@@ -70,6 +72,7 @@
   // Component sizes (Figma: library-desktop 2:611, library-tablet 2:820,
   // library-mobile 2:1023, Game Detail Dialog Modal 2:1406)
   --size-header-desktop: 85px;
+  --size-header-profile: 240px;
   --size-footer-brand: 400px;
   --size-card-height: 200px;
   --size-card-height-compact: 152px;
@@ -119,7 +122,7 @@
   --weight-bold: 700;
   --weight-extra-bold: 800;
 
-  // Shadows (жёсткие, без размытия — фирменная черта макета)
+  // Shadows
   --shadow-hard-xs: 3px 3px 0 var(--color-on-primary);
   --shadow-hard-sm: 4px 4px 0 var(--color-on-primary);
   --shadow-hard-md: 6px 6px 0 var(--color-on-primary);
@@ -129,4 +132,7 @@
   --shadow-hard-black-lg: 8px 8px 0 var(--color-black);
   --shadow-soft-card: 0 14px 30px -10px rgb(0 0 0 / 8%), 0 2px 8px -4px rgb(0 0 0 / 4%);
   --shadow-soft-modal: 0 10px 20px -10px rgb(0 0 0 / 10%);
+
+  // States
+  --opacity-disabled: 0.5;
 }

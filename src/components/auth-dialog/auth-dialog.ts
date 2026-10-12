@@ -1,16 +1,20 @@
-import { HOME_HREF } from '@/app/paths';
-import { createElement } from '@/shared/lib/dom';
 import {
-  createCloseIcon,
-  createEmailIcon,
-  createEyeIcon,
-  createEyeOffIcon,
-  createGoogleIcon,
-  createLockIcon,
-  createPersonIcon,
-} from '@/shared/ui/icon/icon';
+  getAuthErrorMessage,
+  isAuthCancelledError,
+  registerWithEmail,
+  signInWithEmail,
+  signInWithGoogle,
+  type AuthProfile,
+} from '@/shared/auth/auth-service';
+import { createElement } from '@/shared/lib/dom';
+import { createCloseIcon } from '@/shared/ui/icon/icon';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import type { Component } from '@/shared/types/component';
 import { DialogMode } from '@/shared/types/ui';
+import type { PendingAction } from './auth-form-lock';
+import type { LoginValues, RegisterValues } from './auth-validation';
+import { createLoginForm } from './login-form';
+import { createRegisterForm } from './register-form';
 import './auth-dialog.scss';
 
 interface TabButton {
@@ -53,10 +57,6 @@ function isReducedMotionPreferred(): boolean {
   return globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// Crossfades tab content and animates the container's height from the old
-// panel's height to the new one's, measuring the incoming panel as an
-// absolutely-positioned overlay so it never affects layout while both
-// panels are briefly present together.
 function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void {
   pendingCleanups.get(container)?.();
   pendingCleanups.delete(container);
@@ -107,273 +107,106 @@ function crossfadeContent(container: HTMLElement, nextPanel: HTMLElement): void 
   });
 }
 
-function createDivider(): HTMLElement {
-  return createElement('div', {
-    className: 'auth-dialog__divider',
-    children: [createElement('span', { text: 'OR' })],
-  });
-}
-
-function createGoogleButton(label: string): HTMLButtonElement {
-  return createElement('button', {
-    className: 'auth-dialog__google-button',
-    attributes: { type: 'button' },
-    children: [createGoogleIcon(), createElement('span', { text: label })],
-  });
-}
-
-interface FieldOptions {
-  readonly id: string;
-  readonly label: string;
-  readonly type: string;
-  readonly autocomplete: string;
-  readonly placeholder: string;
-  readonly icon: SVGElement;
-  readonly withPasswordToggle?: boolean;
-}
-
-function createField(options: FieldOptions): HTMLElement {
-  const label = createElement('label', {
-    className: 'auth-dialog__label',
-    text: options.label,
-    attributes: { for: options.id },
-  });
-
-  const input = createElement('input', {
-    className: 'auth-dialog__input',
-    attributes: {
-      id: options.id,
-      name: options.id,
-      type: options.type,
-      autocomplete: options.autocomplete,
-      placeholder: options.placeholder,
-    },
-  });
-
-  const iconWrap = createElement('span', {
-    className: 'auth-dialog__input-icon',
-    attributes: { 'aria-hidden': 'true' },
-    children: [options.icon],
-  });
-
-  const inputWrapChildren: Node[] = [iconWrap, input];
-
-  if (options.withPasswordToggle === true) {
-    const eyeIcon = createEyeIcon();
-    const toggle = createElement('button', {
-      className: 'auth-dialog__toggle-password',
-      attributes: { type: 'button', 'aria-label': 'Show password' },
-      children: [eyeIcon],
-      onClick: () => {
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        toggle.replaceChildren(isPassword ? createEyeOffIcon() : createEyeIcon());
-        toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
-      },
-    });
-
-    inputWrapChildren.push(toggle);
-  }
-
-  const inputWrap = createElement('div', {
-    className: 'auth-dialog__input-wrap',
-    children: inputWrapChildren,
-  });
-
-  return createElement('div', { className: 'auth-dialog__field', children: [label, inputWrap] });
-}
-
-function createLoginForm(onSwitchToRegister: () => void): HTMLElement {
-  const heading = createElement('h2', {
-    className: 'auth-dialog__heading',
-    text: 'Welcome Back!',
-    attributes: { id: HEADING_IDS[DialogMode.Login] },
-  });
-  const subtext = createElement('p', {
-    className: 'auth-dialog__subtext',
-    text: 'Sign in to resume your games and progress.',
-  });
-
-  const emailField = createField({
-    id: 'login-email',
-    label: 'Email Address',
-    type: 'email',
-    autocomplete: 'email',
-    placeholder: 'e.g. alex@minigames.com',
-    icon: createEmailIcon(),
-  });
-
-  const passwordField = createField({
-    id: 'login-password',
-    label: 'Password',
-    type: 'password',
-    autocomplete: 'current-password',
-    placeholder: 'Enter your password',
-    icon: createLockIcon(),
-    withPasswordToggle: true,
-  });
-
-  const forgotLink = createElement('a', {
-    className: 'auth-dialog__forgot',
-    text: 'Forgot Password?',
-    attributes: { href: HOME_HREF },
-  });
-
-  const submitButton = createElement('button', {
-    className: 'auth-dialog__submit',
-    text: 'Login',
-    attributes: { type: 'submit' },
-  });
-
-  const switchLink = createElement('button', {
-    className: 'auth-dialog__switch-link',
-    text: 'Register',
-    attributes: { type: 'button' },
-    onClick: onSwitchToRegister,
-  });
-  const switchText = createElement('p', {
-    className: 'auth-dialog__switch-text',
-    children: [document.createTextNode("Don't have an account? "), switchLink],
-  });
-
-  const form = createElement('form', {
-    className: 'auth-dialog__form',
-    attributes: { novalidate: '' },
-    children: [
-      emailField,
-      passwordField,
-      forgotLink,
-      submitButton,
-      createDivider(),
-      createGoogleButton('Continue with Google'),
-    ],
-  });
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-  });
-
-  return createElement('div', {
-    className: 'auth-dialog__panel-content',
-    children: [heading, subtext, form, switchText],
-  });
-}
-
-function createRegisterForm(onSwitchToLogin: () => void): HTMLElement {
-  const heading = createElement('h2', {
-    className: 'auth-dialog__heading',
-    text: 'Create Account',
-    attributes: { id: HEADING_IDS[DialogMode.Register] },
-  });
-  const subtext = createElement('p', {
-    className: 'auth-dialog__subtext',
-    text: 'Join MiniGames to track your score & streak.',
-  });
-
-  const usernameField = createField({
-    id: 'register-username',
-    label: 'Username',
-    type: 'text',
-    autocomplete: 'username',
-    placeholder: 'e.g. CozyGamer_99',
-    icon: createPersonIcon(),
-  });
-
-  const emailField = createField({
-    id: 'register-email',
-    label: 'Email Address',
-    type: 'email',
-    autocomplete: 'email',
-    placeholder: 'your.email@domain.com',
-    icon: createEmailIcon(),
-  });
-
-  const passwordField = createField({
-    id: 'register-password',
-    label: 'Password',
-    type: 'password',
-    autocomplete: 'new-password',
-    placeholder: 'Min. 8 characters',
-    icon: createLockIcon(),
-  });
-
-  const confirmPasswordField = createField({
-    id: 'register-confirm-password',
-    label: 'Confirm Password',
-    type: 'password',
-    autocomplete: 'new-password',
-    placeholder: 'Repeat your password',
-    icon: createLockIcon(),
-  });
-
-  const submitButton = createElement('button', {
-    className: 'auth-dialog__submit',
-    text: 'Create Account',
-    attributes: { type: 'submit' },
-  });
-
-  const switchLink = createElement('button', {
-    className: 'auth-dialog__switch-link',
-    text: 'Login',
-    attributes: { type: 'button' },
-    onClick: onSwitchToLogin,
-  });
-  const switchText = createElement('p', {
-    className: 'auth-dialog__switch-text',
-    children: [document.createTextNode('Already have an account? '), switchLink],
-  });
-
-  const form = createElement('form', {
-    className: 'auth-dialog__form',
-    attributes: { novalidate: '' },
-    children: [
-      usernameField,
-      emailField,
-      passwordField,
-      confirmPasswordField,
-      submitButton,
-      createDivider(),
-      createGoogleButton('Sign up with Google'),
-    ],
-  });
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-  });
-
-  return createElement('div', {
-    className: 'auth-dialog__panel-content',
-    children: [heading, subtext, form, switchText],
-  });
-}
-
 export interface AuthDialogOptions {
-  // Fires on every close (button, backdrop, Escape, programmatic).
   readonly onClose?: () => void;
-  // Fires when the user switches between Login and Sign Up inside the dialog.
   readonly onModeChange?: (mode: DialogMode) => void;
+  readonly onAuthenticated?: (profile: AuthProfile) => void;
 }
 
 export interface AuthDialogComponent extends Component {
   readonly open: (mode: DialogMode) => void;
   readonly close: () => void;
   readonly getOpenMode: () => DialogMode | undefined;
+  readonly setPending: (pending: PendingAction | undefined) => void;
 }
 
 export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogComponent {
   let lastFocusedElement: HTMLElement | undefined;
   let currentMode = DialogMode.Login;
+  let pendingAction: PendingAction | undefined;
 
   const closeButton = createElement('button', {
     className: 'auth-dialog__close',
     attributes: { type: 'button', 'aria-label': 'Close dialog' },
     children: [createCloseIcon()],
     onClick: () => {
-      dialog.close();
+      requestClose();
     },
   });
 
+  function requestClose(): void {
+    if (pendingAction === undefined) {
+      dialog.close();
+    }
+  }
+
+  function setPending(pending: PendingAction | undefined): void {
+    pendingAction = pending;
+    const isLocked = pending !== undefined;
+
+    closeButton.disabled = isLocked;
+    for (const tab of tabs) {
+      tab.button.disabled = isLocked;
+    }
+    loginForm.setPending(currentMode === DialogMode.Login ? pending : undefined);
+    registerForm.setPending(currentMode === DialogMode.Register ? pending : undefined);
+    panel.setAttribute('aria-busy', String(isLocked));
+  }
+
+  async function authenticate(
+    action: PendingAction,
+    operation: () => Promise<AuthProfile>,
+  ): Promise<void> {
+    if (pendingAction !== undefined) {
+      return;
+    }
+
+    setPending(action);
+
+    let profile: AuthProfile;
+    try {
+      profile = await operation();
+    } catch (error) {
+      setPending(undefined);
+      showSnackbar({
+        message: getAuthErrorMessage(error),
+        variant: isAuthCancelledError(error) ? 'info' : 'error',
+      });
+      return;
+    }
+
+    setPending(undefined);
+    options.onAuthenticated?.(profile);
+    dialog.close();
+  }
+
+  function handleLoginSubmit(values: LoginValues): void {
+    void authenticate('submit', () => signInWithEmail(values.email, values.password));
+  }
+
+  function handleRegisterSubmit(values: RegisterValues): void {
+    void authenticate('submit', () =>
+      registerWithEmail({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      }),
+    );
+  }
+
+  function handleGoogleSignIn(): void {
+    void authenticate('google', signInWithGoogle);
+  }
+
+  function resetForms(): void {
+    loginForm.validation.reset();
+    registerForm.validation.reset();
+  }
+
   function setMode(mode: DialogMode): void {
+    if (mode !== currentMode) {
+      resetForms();
+    }
     currentMode = mode;
     for (const tab of tabs) {
       const isActive = tab.mode === mode;
@@ -383,7 +216,7 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
 
     dialog.setAttribute('aria-labelledby', HEADING_IDS[mode]);
 
-    const content = mode === DialogMode.Login ? loginPanel : registerPanel;
+    const content = mode === DialogMode.Login ? loginForm.element : registerForm.element;
     crossfadeContent(body, content);
   }
 
@@ -413,11 +246,19 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
     children: tabs.map((tab) => tab.button),
   });
 
-  const loginPanel = createLoginForm(() => {
-    switchMode(DialogMode.Register);
+  const loginForm = createLoginForm({
+    headingId: HEADING_IDS[DialogMode.Login],
+    onSwitchToRegister: () => {
+      switchMode(DialogMode.Register);
+    },
+    onSubmit: handleLoginSubmit,
   });
-  const registerPanel = createRegisterForm(() => {
-    switchMode(DialogMode.Login);
+  const registerForm = createRegisterForm({
+    headingId: HEADING_IDS[DialogMode.Register],
+    onSwitchToLogin: () => {
+      switchMode(DialogMode.Login);
+    },
+    onSubmit: handleRegisterSubmit,
   });
 
   const body = createElement('div', {
@@ -438,11 +279,19 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
 
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
-      dialog.close();
+      requestClose();
+    }
+  });
+
+  dialog.addEventListener('cancel', (event) => {
+    if (pendingAction !== undefined) {
+      event.preventDefault();
     }
   });
 
   dialog.addEventListener('close', () => {
+    setPending(undefined);
+    resetForms();
     document.removeEventListener('keydown', handleKeydown);
     unlockBodyScroll();
     lastFocusedElement?.focus();
@@ -454,6 +303,12 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
   }
 
   function handleKeydown(event: KeyboardEvent): void {
+    // Browsers may skip "cancel" on a repeated Escape; block it at the source.
+    if (pendingAction !== undefined && event.key === 'Escape') {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key !== 'Tab') {
       return;
     }
@@ -496,6 +351,9 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
     document.addEventListener('keydown', handleKeydown);
   }
 
+  loginForm.googleButton.addEventListener('click', handleGoogleSignIn);
+  registerForm.googleButton.addEventListener('click', handleGoogleSignIn);
+
   setMode(DialogMode.Login);
 
   return {
@@ -507,6 +365,7 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
       }
     },
     getOpenMode: (): DialogMode | undefined => (dialog.open ? currentMode : undefined),
+    setPending,
     destroy: (): void => {
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();

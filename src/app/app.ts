@@ -2,8 +2,10 @@ import { createAuthDialog, isDialogMode } from '@/components/auth-dialog/auth-di
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
+import { ensureActiveSession, initSession, startSession } from '@/shared/auth/session-store';
 import { onAuthDialogOpen, onGameDetailsOpen } from '@/shared/lib/app-events';
 import { createElement } from '@/shared/lib/dom';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import {
   AUTH_QUERY_KEY,
   closeDialogInUrl,
@@ -11,11 +13,28 @@ import {
   openDialogInUrl,
   replaceDialogInUrl,
 } from './dialog-history';
-import { createRouter, onRouteChange, updateQuery, type RouteState } from './router';
+import {
+  createRouter,
+  onBeforeRouteChange,
+  onRouteChange,
+  updateQuery,
+  type RouteState,
+} from './router';
+
+const ALREADY_AUTHENTICATED_MESSAGE = 'You are already logged in.';
+
+function notifyAlreadyAuthenticated(): void {
+  showSnackbar({ message: ALREADY_AUTHENTICATED_MESSAGE, variant: 'info' });
+}
+
+// Auth opens for guests only; a signed-in user's ?auth= is dropped.
+function isAuthRequested(state: RouteState): boolean {
+  const mode = state.params.get(AUTH_QUERY_KEY);
+  return mode !== null && isDialogMode(mode) && ensureActiveSession() === undefined;
+}
 
 export interface App {
   readonly element: HTMLElement;
-  // Must run after `element` is in the document: deep links open <dialog>s.
   readonly start: () => void;
 }
 
@@ -28,6 +47,13 @@ export function createApp(): App {
     },
     onModeChange: (mode) => {
       replaceDialogInUrl(AUTH_QUERY_KEY, mode);
+    },
+    onAuthenticated: (profile) => {
+      startSession(profile);
+      showSnackbar({
+        message: `Welcome, ${profile.displayName === '' ? profile.email : profile.displayName}!`,
+        variant: 'success',
+      });
     },
   });
   const gameDetailsDialog = createGameDetailsDialog({
@@ -47,7 +73,6 @@ export function createApp(): App {
     ],
   });
 
-  // Cards only announce the intent; the URL change below opens the dialog.
   onGameDetailsOpen((slug) => {
     if (slug !== undefined) {
       openDialogInUrl(GAME_QUERY_KEY, slug);
@@ -59,24 +84,39 @@ export function createApp(): App {
 
     if (slug === null) {
       gameDetailsDialog.close();
+    } else if (isAuthRequested(state)) {
+      // Only one dialog at a time: Auth takes over and Game Details comes
+      // back (reloaded for the current session) once ?auth= leaves the URL.
+      gameDetailsDialog.hide();
     } else if (gameDetailsDialog.getOpenSlug() !== slug) {
       gameDetailsDialog.open(slug);
     }
   }
 
+  // UI entry point: a signed-in user never gets an Auth history entry.
   onAuthDialogOpen((mode) => {
-    openDialogInUrl(AUTH_QUERY_KEY, mode);
+    if (ensureActiveSession() === undefined) {
+      openDialogInUrl(AUTH_QUERY_KEY, mode);
+    } else {
+      notifyAlreadyAuthenticated();
+    }
   });
 
+  // URL and history entry points (deep links, Back/Forward). An expired or
+  // invalid session has already been recovered to guest mode by the
+  // before-route check, so ?auth= opens normally for guests.
   function syncAuthDialog(state: RouteState): void {
     const mode = state.params.get(AUTH_QUERY_KEY);
 
     if (mode === null) {
       authDialog.close();
+    } else if (ensureActiveSession() !== undefined) {
+      // Drop only "auth" in place: path, other params and hash stay.
+      updateQuery({ [AUTH_QUERY_KEY]: undefined }, { replace: true });
+      notifyAlreadyAuthenticated();
     } else if (isDialogMode(mode)) {
       authDialog.open(mode);
     } else {
-      // Unknown value (e.g. ?auth=foo): drop it so the URL stays truthful.
       updateQuery({ [AUTH_QUERY_KEY]: undefined }, { replace: true });
     }
   }
@@ -89,6 +129,10 @@ export function createApp(): App {
   return {
     element,
     start: (): void => {
+      initSession();
+      onBeforeRouteChange(() => {
+        ensureActiveSession();
+      });
       createRouter(outlet).start();
     },
   };

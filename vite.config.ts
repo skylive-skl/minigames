@@ -33,8 +33,6 @@ function designReferencesDevelopmentServer(): Plugin {
   };
 }
 
-// GitHub Pages has no SPA rewrites: it serves 404.html for unknown paths, so a
-// copy of index.html lets deep links like /minigames/library?page=2 boot the app.
 function spaFallbackPage(): Plugin {
   let outDirectory = 'dist';
 

@@ -119,7 +119,7 @@
   font-weight: var(--weight-bold);
   text-align: center;
 
-  &:not(.auth-dialog__tab--active) {
+  &:not(.auth-dialog__tab--active, :disabled) {
     @include bp.hover {
       background-color: var(--color-surface);
     }
@@ -237,6 +237,24 @@
   }
 }
 
+.auth-dialog__field--invalid .auth-dialog__input {
+  border-color: var(--color-error);
+
+  @include bp.hover {
+    border-color: var(--color-error);
+  }
+
+  &:focus-visible {
+    border-color: var(--color-error);
+  }
+}
+
+.auth-dialog__error {
+  @include type.body-small;
+
+  color: var(--color-error);
+}
+
 .auth-dialog__toggle-password {
   @include mix.button-reset;
   @include mix.focus-ring;
@@ -286,6 +304,13 @@
 
   &:active {
     filter: brightness(0.94);
+  }
+
+  &:disabled {
+    background-color: var(--color-primary);
+    cursor: not-allowed;
+    filter: none;
+    opacity: var(--opacity-disabled);
   }
 }
 
@@ -352,4 +377,36 @@
   @include bp.hover {
     color: var(--color-tertiary);
   }
+}
+
+// Pending authentication: every action is locked until the request settles.
+.auth-dialog__tab:disabled,
+.auth-dialog__google-button:disabled,
+.auth-dialog__switch-link:disabled,
+.auth-dialog__toggle-password:disabled,
+.auth-dialog__input:disabled {
+  cursor: not-allowed;
+}
+
+.auth-dialog__tab:disabled:not(.auth-dialog__tab--active),
+.auth-dialog__google-button:disabled,
+.auth-dialog__switch-link:disabled,
+.auth-dialog__action--locked {
+  opacity: var(--opacity-disabled);
+}
+
+.auth-dialog__google-button:disabled {
+  background-color: var(--color-white);
+  filter: none;
+}
+
+.auth-dialog__action--locked {
+  pointer-events: none;
+}
+
+.auth-dialog__submit[aria-busy='true'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
 }
