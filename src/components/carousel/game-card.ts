@@ -4,13 +4,7 @@ import { getGameImageUrl } from '@/shared/lib/game-images';
 import type { Game } from '@/shared/types/game';
 import { createHeartIcon, createStarIcon } from '@/shared/ui/icon/icon';
 
-export type CardPosition = 'edge' | 'side' | 'center' | 'outer';
-
-export function createGameCard(
-  game: Game,
-  position: CardPosition,
-  onClick?: () => void,
-): HTMLElement {
+export function createGameCard(game: Game, onClick?: () => void): HTMLElement {
   const image = createElement('img', {
     className: 'game-card__image',
     attributes: {
@@ -43,7 +37,7 @@ export function createGameCard(
   });
 
   const card = createElement('article', {
-    className: `game-card game-card--${position}`,
+    className: 'game-card',
     attributes: {
       tabindex: '0',
       role: 'button',

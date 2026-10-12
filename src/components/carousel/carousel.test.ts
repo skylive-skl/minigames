@@ -46,6 +46,34 @@ function arrowOf(carousel: Carousel, direction: 'left' | 'right'): HTMLButtonEle
   return arrow;
 }
 
+function cardIn(carousel: Carousel, position: string): HTMLElement | null {
+  return carousel.element.querySelector<HTMLElement>(
+    `:scope .carousel__item--${position} .game-card`,
+  );
+}
+
+// Drives the desktop breakpoint query the carousel reads its slot set from.
+function stubLayout(isWide: boolean): (isNextWide: boolean) => void {
+  const listeners = new Set<() => void>();
+  const query = {
+    matches: isWide,
+    addEventListener: (_type: string, listener: () => void): void => {
+      listeners.add(listener);
+    },
+    removeEventListener: (_type: string, listener: () => void): void => {
+      listeners.delete(listener);
+    },
+  };
+  vi.stubGlobal('matchMedia', () => query);
+
+  return (isNextWide) => {
+    query.matches = isNextWide;
+    for (const listener of listeners) {
+      listener();
+    }
+  };
+}
+
 function pointer(type: string, clientX: number, clientY = 0): Event {
   return new MouseEvent(type, { clientX, clientY, bubbles: true, cancelable: true });
 }
@@ -54,6 +82,7 @@ describe('carousel', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     vi.mocked(fetchFeaturedGames).mockResolvedValue(GAMES);
+    stubLayout(true);
   });
 
   afterEach(() => {
@@ -98,6 +127,49 @@ describe('carousel', () => {
     arrowOf(carousel, 'left').click();
     vi.advanceTimersByTime(SLIDE_SAFETY_DELAY);
     expect(centerTitle(carousel)).toBe('DELTA');
+  });
+
+  it('keeps card nodes while sliding and refills only the card that wraps around', async () => {
+    const carousel = await mountCarousel();
+    const centerCard = cardIn(carousel, 'center');
+    const sideRightCard = cardIn(carousel, 'side-right');
+
+    arrowOf(carousel, 'right').click();
+    vi.advanceTimersByTime(SLIDE_SAFETY_DELAY);
+
+    expect(cardIn(carousel, 'center')).toBe(sideRightCard);
+    expect(cardIn(carousel, 'side-left')).toBe(centerCard);
+    expect(carousel.element.querySelectorAll('.carousel__item')).toHaveLength(7);
+    expect(cardIn(carousel, 'outer-right')?.querySelector('.game-card__title')?.textContent).toBe(
+      'ALPHA',
+    );
+  });
+
+  it('uses five slots below desktop and slides the visible edge card into the center', async () => {
+    stubLayout(false);
+    const carousel = await mountCarousel();
+    const edgeRightCard = cardIn(carousel, 'edge-right');
+
+    expect(carousel.element.querySelectorAll('.carousel__item')).toHaveLength(5);
+    expect(carousel.element.querySelector('.carousel__item--side-right')).toBeNull();
+    expect(edgeRightCard?.querySelector('.game-card__title')?.textContent).toBe('BRAVO');
+
+    arrowOf(carousel, 'right').click();
+    vi.advanceTimersByTime(SLIDE_SAFETY_DELAY);
+
+    expect(cardIn(carousel, 'center')).toBe(edgeRightCard);
+  });
+
+  it('rebuilds the slots when the layout crosses the desktop breakpoint', async () => {
+    const setWide = stubLayout(true);
+    const carousel = await mountCarousel();
+    arrowOf(carousel, 'right').click();
+    vi.advanceTimersByTime(SLIDE_SAFETY_DELAY);
+
+    setWide(false);
+
+    expect(carousel.element.querySelectorAll('.carousel__item')).toHaveLength(5);
+    expect(centerTitle(carousel)).toBe('BRAVO');
   });
 
   it('ignores clicks while a slide is animating', async () => {
