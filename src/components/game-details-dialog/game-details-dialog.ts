@@ -192,7 +192,7 @@ export function createGameDetailsDialog(
     comments.showLoading();
 
     try {
-      const response = await fetchLatestComments(slug, controller.signal);
+      const response = await fetchLatestComments(slug, { signal: controller.signal });
       comments.showComments(response.data, response.meta.totalComments);
     } catch (error) {
       if (isAbortError(error)) {
@@ -225,7 +225,7 @@ export function createGameDetailsDialog(
     void loadComments(slug);
 
     try {
-      showDetails(await fetchGameDetails(slug, controller.signal));
+      showDetails(await fetchGameDetails(slug, { signal: controller.signal }));
     } catch (error) {
       if (isAbortError(error)) {
         return;

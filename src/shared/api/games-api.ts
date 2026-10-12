@@ -1,6 +1,11 @@
 import type { Game, GameDetails, SortValue } from '@/shared/types/game';
-import { apiGet } from './http';
-import type { ApiListResponse, ApiResponse, GamesListMeta } from './types';
+import { apiGet, apiPost } from './http';
+import type {
+  ApiListResponse,
+  ApiResponse,
+  GamesListMeta,
+  PersonalizedRequestOptions,
+} from './types';
 
 export const LIBRARY_PAGE_SIZE = 6;
 
@@ -34,11 +39,29 @@ export function fetchGames(query: GamesQuery, signal?: AbortSignal): Promise<Gam
   );
 }
 
-export async function fetchGameDetails(slug: string, signal?: AbortSignal): Promise<GameDetails> {
+export async function fetchGameDetails(
+  slug: string,
+  options: PersonalizedRequestOptions = {},
+): Promise<GameDetails> {
   const response = await apiGet<ApiResponse<GameDetails>>(
     `/games/${encodeURIComponent(slug)}`,
-    undefined,
-    signal,
+    { userEmail: options.userEmail },
+    options.signal,
+  );
+  return response.data;
+}
+
+export interface FavoriteState {
+  readonly gameSlug: string;
+  readonly isFavorited: boolean;
+  readonly likesCount: number;
+}
+
+// One endpoint toggles both ways: each successful call flips the state.
+export async function toggleFavorite(slug: string, userEmail: string): Promise<FavoriteState> {
+  const response = await apiPost<ApiResponse<FavoriteState>>(
+    `/games/${encodeURIComponent(slug)}/favorite`,
+    { userEmail },
   );
   return response.data;
 }

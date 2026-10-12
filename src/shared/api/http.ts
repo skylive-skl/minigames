@@ -3,6 +3,9 @@ export const API_BASE_URL = 'https://faxb76kxra.execute-api.eu-central-1.amazona
 // Network failures (offline, DNS, CORS) never reach the server, so they get a status of 0.
 export const NETWORK_ERROR_STATUS = 0;
 
+// Mutations give up after this long; their outcome is then unknown.
+export const MUTATION_TIMEOUT_MS = 15_000;
+
 export type QueryParameters = Readonly<Record<string, string | number | undefined>>;
 
 export class ApiError extends Error {
@@ -53,20 +56,26 @@ function getErrorMessage(body: unknown, status: number): string {
   return `Request failed with status ${String(status)}`;
 }
 
-export async function apiGet<T>(
-  path: string,
-  parameters?: QueryParameters,
-  signal?: AbortSignal,
-): Promise<T> {
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'TimeoutError';
+}
+
+async function request<T>(url: string, init: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(buildUrl(path, parameters), signal === undefined ? {} : { signal });
+    response = await fetch(url, init);
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
     }
-    throw new ApiError('Network error. Check your connection and try again.', NETWORK_ERROR_STATUS);
+    // Lost connection or timeout: the server may or may not have handled it.
+    throw new ApiError(
+      isTimeoutError(error)
+        ? 'The request timed out.'
+        : 'Network error. Check your connection and try again.',
+      NETWORK_ERROR_STATUS,
+    );
   }
 
   const body = await readJson(response);
@@ -76,4 +85,25 @@ export async function apiGet<T>(
   }
 
   return body as T;
+}
+
+export function apiGet<T>(
+  path: string,
+  parameters?: QueryParameters,
+  signal?: AbortSignal,
+): Promise<T> {
+  return request<T>(buildUrl(path, parameters), signal === undefined ? {} : { signal });
+}
+
+// A status of NETWORK_ERROR_STATUS from a POST means "outcome unknown":
+// callers must not retry automatically, since toggles would flip back.
+export function apiPost<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+  const timeout = AbortSignal.timeout(MUTATION_TIMEOUT_MS);
+
+  return request<T>(buildUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
+  });
 }
