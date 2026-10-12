@@ -1,3 +1,4 @@
+import type { AppSession } from '@/shared/auth/app-session';
 import { createElement } from '@/shared/lib/dom';
 import type { GameComment } from '@/shared/types/game';
 import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/feedback-state';
@@ -13,6 +14,12 @@ export interface GameDetailsCommentsController {
   readonly showComments: (comments: readonly GameComment[], totalCount: number) => void;
   readonly showError: (message: string, onRetry: () => void) => void;
   readonly reset: () => void;
+  readonly setSession: (session: AppSession | undefined) => void;
+  readonly setPending: (isPending: boolean) => void;
+}
+
+export interface GameDetailsCommentsOptions {
+  readonly onSubmit?: (text: string) => void;
 }
 
 function createSkeletonComment(): HTMLElement {
@@ -25,7 +32,9 @@ function createSkeletonComment(): HTMLElement {
   });
 }
 
-export function createGameDetailsComments(): GameDetailsCommentsController {
+export function createGameDetailsComments(
+  options: GameDetailsCommentsOptions = {},
+): GameDetailsCommentsController {
   const heading = createElement('h3', {
     className: 'game-details-dialog__section-title',
     attributes: {
@@ -34,7 +43,7 @@ export function createGameDetailsComments(): GameDetailsCommentsController {
     text: 'Comments',
   });
 
-  const form = createCommentForm();
+  const form = createCommentForm(options);
   const content = createElement('div', { className: 'game-details-dialog__comments-content' });
 
   const section = createElement('section', {
@@ -78,5 +87,7 @@ export function createGameDetailsComments(): GameDetailsCommentsController {
     reset: (): void => {
       form.reset();
     },
+    setSession: form.setSession,
+    setPending: form.setPending,
   };
 }

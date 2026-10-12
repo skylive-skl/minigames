@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchLatestComments } from '@/shared/api/comments-api';
+import { fetchLatestComments, postComment } from '@/shared/api/comments-api';
 import { fetchGameDetails, toggleFavorite } from '@/shared/api/games-api';
 import { ApiError } from '@/shared/api/http';
 import { AUTH_DIALOG_OPEN_EVENT } from '@/shared/lib/app-events';
@@ -10,7 +10,10 @@ import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createGameDetailsDialog } from './game-details-dialog';
 
 vi.mock('@/shared/api/games-api', () => ({ fetchGameDetails: vi.fn(), toggleFavorite: vi.fn() }));
-vi.mock('@/shared/api/comments-api', () => ({ fetchLatestComments: vi.fn() }));
+vi.mock('@/shared/api/comments-api', () => ({
+  fetchLatestComments: vi.fn(),
+  postComment: vi.fn(),
+}));
 vi.mock('@/shared/auth/auth-service', () => ({ signOutUser: vi.fn(() => Promise.resolve()) }));
 vi.mock('@/shared/ui/snackbar/snackbar', () => ({ showSnackbar: vi.fn() }));
 
@@ -135,6 +138,33 @@ describe('game details dialog', () => {
       'tiny-glade',
       expect.objectContaining({ userEmail: undefined }),
     );
+  });
+
+  it('locks the comment form for guests and unlocks it after sign-in', async () => {
+    const gameDialog = await openLoadedDialog();
+    const textarea = gameDialog.element.querySelector('textarea');
+    // Kept as references: the reload after sign-in swaps the body for skeletons.
+    const avatar = gameDialog.element.querySelector('.game-details-dialog__avatar--user');
+
+    expect(textarea?.disabled).toBe(true);
+
+    startSession(profile);
+
+    expect(textarea?.disabled).toBe(false);
+    expect(avatar?.textContent).toBe('A');
+  });
+
+  it('clears the comment draft when another game is opened', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    const textarea = gameDialog.element.querySelector('textarea');
+    if (textarea !== null) {
+      textarea.value = 'Draft for Tiny Glade';
+    }
+
+    gameDialog.open('cat-chess');
+
+    expect(textarea?.value).toBe('');
   });
 
   it('does not reload a closed dialog when the session changes', () => {
@@ -328,5 +358,122 @@ describe('favorites toggle', () => {
     });
     expect(toggleFavorite).toHaveBeenCalledOnce();
     expect(favoriteButtonOf(gameDialog.element).getAttribute('aria-pressed')).toBe('false');
+  });
+});
+
+function commentPartsOf(root: Element): { textarea: HTMLTextAreaElement; form: HTMLFormElement } {
+  const textarea = root.querySelector('textarea');
+  const form = root.querySelector<HTMLFormElement>('.game-details-dialog__comment-form');
+  if (textarea === null || form === null) {
+    throw new Error('Comment form is missing');
+  }
+  return { textarea, form };
+}
+
+function sendComment(root: Element, text: string): void {
+  const { textarea, form } = commentPartsOf(root);
+  textarea.value = text;
+  form.requestSubmit();
+}
+
+describe('comment submission', () => {
+  const authRequests = vi.fn();
+
+  beforeEach(() => {
+    vi.mocked(fetchGameDetails).mockResolvedValue(gameDetails);
+    vi.mocked(fetchLatestComments).mockResolvedValue({
+      data: [comment],
+      meta: { totalComments: 12, returnedCount: 1, sort: 'newest' },
+    });
+    document.addEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+  });
+
+  afterEach(async () => {
+    document.removeEventListener(AUTH_DIALOG_OPEN_EVENT, authRequests);
+    authRequests.mockClear();
+    vi.useRealTimers();
+    for (const gameDialog of mountedDialogs.splice(0)) {
+      gameDialog.destroy?.();
+    }
+    await logout();
+  });
+
+  it('posts with the session identity, then refreshes the latest comments', async () => {
+    startSession({ displayName: 'ForestDweller', email: 'forest@mail.com' });
+    const gameDialog = await openLoadedDialog();
+    const pending = Promise.withResolvers<GameComment>();
+    vi.mocked(postComment).mockReturnValue(pending.promise);
+    vi.mocked(fetchLatestComments).mockClear();
+    const { textarea } = commentPartsOf(gameDialog.element);
+
+    sendComment(gameDialog.element, '  Such a calming game!  ');
+
+    expect(postComment).toHaveBeenCalledWith('tiny-glade', {
+      userEmail: 'forest@mail.com',
+      authorName: 'ForestDweller',
+      text: 'Such a calming game!',
+    });
+    expect(textarea.disabled).toBe(true);
+
+    vi.mocked(fetchLatestComments).mockResolvedValue({
+      data: [{ ...comment, commentId: 'c2', text: 'Such a calming game!' }],
+      meta: { totalComments: 13, returnedCount: 1, sort: 'newest' },
+    });
+    pending.resolve({ ...comment, commentId: 'c2' });
+
+    await vi.waitFor(() => {
+      expect(textOf(gameDialog.element, '#game-details-comments-heading')).toBe('Comments (13)');
+    });
+    expect(textarea.value).toBe('');
+    expect(textarea.disabled).toBe(false);
+    expect(fetchLatestComments).toHaveBeenCalledWith(
+      'tiny-glade',
+      expect.objectContaining({ userEmail: 'forest@mail.com' }),
+    );
+    expect(gameDialog.element.textContent).toContain('Such a calming game!');
+  });
+
+  it('keeps the text and unlocks the form when the server rejects it', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.mocked(postComment).mockRejectedValue(new ApiError('authorName must be 2–30 chars', 400));
+    const { textarea } = commentPartsOf(gameDialog.element);
+
+    sendComment(gameDialog.element, 'Hello there');
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Could not post the comment. authorName must be 2–30 chars',
+        variant: 'error',
+      });
+    });
+    expect(textarea.value).toBe('Hello there');
+    expect(textarea.disabled).toBe(false);
+  });
+
+  it('keeps the text and reports an unknown outcome without resending', async () => {
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.mocked(postComment).mockRejectedValue(new ApiError('Network error.', 0));
+
+    sendComment(gameDialog.element, 'Did this arrive?');
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith(expect.objectContaining({ variant: 'warning' }));
+    });
+    expect(postComment).toHaveBeenCalledOnce();
+    expect(commentPartsOf(gameDialog.element).textarea.value).toBe('Did this arrive?');
+  });
+
+  it('does not post once the session has expired', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    startSession(profile);
+    const gameDialog = await openLoadedDialog();
+    vi.setSystemTime(Date.now() + SESSION_LIFETIME_MS + 1);
+
+    sendComment(gameDialog.element, 'Too late');
+
+    expect(postComment).not.toHaveBeenCalled();
+    expect(authRequests).toHaveBeenCalledOnce();
   });
 });

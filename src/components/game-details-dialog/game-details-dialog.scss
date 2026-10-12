@@ -146,7 +146,7 @@
   }
 
   &__comment-submit:disabled {
-    opacity: 0.5;
+    opacity: var(--opacity-disabled);
   }
 
   &__skeleton-records {
@@ -481,9 +481,20 @@
   // Comments: Figma 2:1468
   &__comment-form {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: var(--size-2);
     margin-bottom: var(--size-2);
+  }
+
+  // Sits under the textarea: avatar width + form gap.
+  &__comment-hint {
+    @include type.body-small;
+
+    flex-basis: 100%;
+    margin-top: calc(var(--size-1) * -1);
+    padding-left: calc(var(--size-4) - var(--size-05) + var(--size-2));
+    color: var(--color-error);
   }
 
   &__avatar {
