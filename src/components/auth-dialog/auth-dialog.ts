@@ -1,7 +1,9 @@
 import {
   getAuthErrorMessage,
+  isAuthCancelledError,
   registerWithEmail,
   signInWithEmail,
+  signInWithGoogle,
   type AuthProfile,
 } from '@/shared/auth/auth-service';
 import { createElement } from '@/shared/lib/dom';
@@ -166,7 +168,10 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
       profile = await operation();
     } catch (error) {
       setPending(undefined);
-      showSnackbar({ message: getAuthErrorMessage(error), variant: 'error' });
+      showSnackbar({
+        message: getAuthErrorMessage(error),
+        variant: isAuthCancelledError(error) ? 'info' : 'error',
+      });
       return;
     }
 
@@ -187,6 +192,10 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
         password: values.password,
       }),
     );
+  }
+
+  function handleGoogleSignIn(): void {
+    void authenticate('google', signInWithGoogle);
   }
 
   function resetForms(): void {
@@ -341,6 +350,9 @@ export function createAuthDialog(options: AuthDialogOptions = {}): AuthDialogCom
     lockBodyScroll();
     document.addEventListener('keydown', handleKeydown);
   }
+
+  loginForm.googleButton.addEventListener('click', handleGoogleSignIn);
+  registerForm.googleButton.addEventListener('click', handleGoogleSignIn);
 
   setMode(DialogMode.Login);
 

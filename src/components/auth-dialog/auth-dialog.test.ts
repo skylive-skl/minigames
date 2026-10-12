@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { registerWithEmail, signInWithEmail, type AuthProfile } from '@/shared/auth/auth-service';
+import {
+  registerWithEmail,
+  signInWithEmail,
+  signInWithGoogle,
+  type AuthProfile,
+} from '@/shared/auth/auth-service';
 import { DialogMode } from '@/shared/types/ui';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createAuthDialog, type AuthDialogOptions } from './auth-dialog';
@@ -279,5 +284,90 @@ describe('email and password authentication', () => {
         expect.objectContaining({ displayName: 'CozyGamer99' }),
       );
     });
+  });
+});
+
+function clickGoogle(root: Element): void {
+  queryButton(visibleForm(root), '.auth-dialog__google-button').click();
+}
+
+describe('Google authentication', () => {
+  it.each([DialogMode.Login, DialogMode.Register])(
+    'signs in with Google from the %s form and closes on success',
+    async (mode) => {
+      const pending = Promise.withResolvers<AuthProfile>();
+      vi.mocked(signInWithGoogle).mockReturnValue(pending.promise);
+      const onAuthenticated = vi.fn();
+      const authDialog = openDialog(mode, { onAuthenticated });
+
+      clickGoogle(authDialog.element);
+
+      expect(signInWithGoogle).toHaveBeenCalledOnce();
+      const google = queryButton(visibleForm(authDialog.element), '.auth-dialog__google-button');
+      expect(google.disabled).toBe(true);
+      expect(google.getAttribute('aria-busy')).toBe('true');
+
+      pending.resolve({ ...profile, avatarUrl: 'https://photo.png' });
+      await vi.waitFor(() => {
+        expect(onAuthenticated).toHaveBeenCalledWith({
+          ...profile,
+          avatarUrl: 'https://photo.png',
+        });
+      });
+      expect(authDialog.getOpenMode()).toBeUndefined();
+    },
+  );
+
+  it('blocks other auth actions and closing while Google is pending', () => {
+    vi.mocked(signInWithGoogle).mockReturnValue(Promise.withResolvers<AuthProfile>().promise);
+    const authDialog = openDialog();
+    fill(authDialog.element, { 'login-email': 'alex@mail.com', 'login-password': 'secret1' });
+
+    clickGoogle(authDialog.element);
+    submit(authDialog.element);
+    authDialog.element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(signInWithEmail).not.toHaveBeenCalled();
+    expect(queryInput(authDialog.element, '#login-email').disabled).toBe(true);
+    expect(authDialog.getOpenMode()).toBe(DialogMode.Login);
+  });
+
+  it('keeps the dialog open and unlocks it when the popup is closed', async () => {
+    vi.mocked(signInWithGoogle).mockRejectedValue(
+      Object.assign(new Error('closed'), { code: 'auth/popup-closed-by-user' }),
+    );
+    const onAuthenticated = vi.fn();
+    const authDialog = openDialog(DialogMode.Login, { onAuthenticated });
+
+    clickGoogle(authDialog.element);
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Google sign-in was cancelled.',
+        variant: 'info',
+      });
+    });
+    expect(authDialog.getOpenMode()).toBe(DialogMode.Login);
+    expect(onAuthenticated).not.toHaveBeenCalled();
+    expect(
+      queryButton(visibleForm(authDialog.element), '.auth-dialog__google-button').disabled,
+    ).toBe(false);
+  });
+
+  it('reports a failed Google sign-in as an error', async () => {
+    vi.mocked(signInWithGoogle).mockRejectedValue(
+      Object.assign(new Error('offline'), { code: 'auth/network-request-failed' }),
+    );
+    const authDialog = openDialog();
+
+    clickGoogle(authDialog.element);
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Network error. Check your connection and try again.',
+        variant: 'error',
+      });
+    });
+    expect(authDialog.getOpenMode()).toBe(DialogMode.Login);
   });
 });
