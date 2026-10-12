@@ -1,6 +1,7 @@
 import { fetchLatestComments } from '@/shared/api/comments-api';
 import { fetchGameDetails } from '@/shared/api/games-api';
 import { ApiError, isAbortError } from '@/shared/api/http';
+import { getActiveSession, onSessionChange } from '@/shared/auth/session-store';
 import { createElement } from '@/shared/lib/dom';
 import type { Component } from '@/shared/types/component';
 import type { GameDetails } from '@/shared/types/game';
@@ -192,7 +193,10 @@ export function createGameDetailsDialog(
     comments.showLoading();
 
     try {
-      const response = await fetchLatestComments(slug, { signal: controller.signal });
+      const response = await fetchLatestComments(slug, {
+        userEmail: getActiveSession()?.email,
+        signal: controller.signal,
+      });
       comments.showComments(response.data, response.meta.totalComments);
     } catch (error) {
       if (isAbortError(error)) {
@@ -225,7 +229,12 @@ export function createGameDetailsDialog(
     void loadComments(slug);
 
     try {
-      showDetails(await fetchGameDetails(slug, { signal: controller.signal }));
+      showDetails(
+        await fetchGameDetails(slug, {
+          userEmail: getActiveSession()?.email,
+          signal: controller.signal,
+        }),
+      );
     } catch (error) {
       if (isAbortError(error)) {
         return;
@@ -255,6 +264,14 @@ export function createGameDetailsDialog(
     document.addEventListener('keydown', handleKeydown);
     closeButton.focus();
   };
+
+  // Sign-in, logout or expiry while the dialog is open: reload so favorite
+  // and like states match the current user (or guest).
+  const unsubscribeSession = onSessionChange(() => {
+    if (openSlug !== undefined && dialog.open) {
+      void loadDetails(openSlug);
+    }
+  });
 
   let isHiding = false;
 
@@ -299,6 +316,7 @@ export function createGameDetailsDialog(
     hide: hideDialog,
     getOpenSlug: (): string | undefined => (dialog.open ? openSlug : undefined),
     destroy: (): void => {
+      unsubscribeSession();
       abortRequests();
       document.removeEventListener('keydown', handleKeydown);
       unlockBodyScroll();
