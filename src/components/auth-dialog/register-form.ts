@@ -14,6 +14,7 @@ import { validateRegisterForm, type RegisterValues } from './auth-validation';
 export interface RegisterFormOptions {
   readonly headingId: string;
   readonly onSwitchToLogin: () => void;
+  readonly onSubmit?: (values: RegisterValues) => void;
 }
 
 export interface RegisterForm {
@@ -119,7 +120,9 @@ export function createRegisterForm(options: RegisterFormOptions): RegisterForm {
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    validation.revealAll();
+    if (validation.revealAll()) {
+      options.onSubmit?.(validation.getValues());
+    }
   });
 
   return {

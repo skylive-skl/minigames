@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
+import { registerWithEmail, signInWithEmail, type AuthProfile } from '@/shared/auth/auth-service';
 import { DialogMode } from '@/shared/types/ui';
+import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
 import { createAuthDialog, type AuthDialogOptions } from './auth-dialog';
+
+vi.mock('@/shared/auth/auth-service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/auth-service')>()),
+  signInWithEmail: vi.fn(),
+  registerWithEmail: vi.fn(),
+  signInWithGoogle: vi.fn(),
+}));
+vi.mock('@/shared/ui/snackbar/snackbar', () => ({ showSnackbar: vi.fn() }));
 
 function openDialog(
   mode: DialogMode = DialogMode.Login,
@@ -165,5 +175,109 @@ describe('auth dialog closing', () => {
 
     expect(onModeChange).toHaveBeenCalledWith(DialogMode.Register);
     expect(authDialog.getOpenMode()).toBe(DialogMode.Register);
+  });
+});
+
+function fill(root: Element, values: Readonly<Record<string, string>>): void {
+  for (const [id, value] of Object.entries(values)) {
+    const input = queryInput(root, `#${id}`);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+  }
+}
+
+function submit(root: Element): void {
+  query(visibleForm(root), 'form').dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
+const profile: AuthProfile = { displayName: 'Alex', email: 'alex@mail.com' };
+
+describe('email and password authentication', () => {
+  it('signs in with the entered credentials and closes on success', async () => {
+    const pending = Promise.withResolvers<AuthProfile>();
+    vi.mocked(signInWithEmail).mockReturnValue(pending.promise);
+    const onAuthenticated = vi.fn();
+    const authDialog = openDialog(DialogMode.Login, { onAuthenticated });
+    fill(authDialog.element, { 'login-email': 'alex@mail.com', 'login-password': 'secret1' });
+
+    submit(authDialog.element);
+
+    expect(signInWithEmail).toHaveBeenCalledWith('alex@mail.com', 'secret1');
+    expect(queryInput(authDialog.element, '#login-email').disabled).toBe(true);
+
+    pending.resolve(profile);
+    await vi.waitFor(() => {
+      expect(onAuthenticated).toHaveBeenCalledWith(profile);
+    });
+    expect(authDialog.getOpenMode()).toBeUndefined();
+  });
+
+  it('sends a single request when submit is triggered twice', () => {
+    vi.mocked(signInWithEmail).mockReturnValue(Promise.withResolvers<AuthProfile>().promise);
+    const authDialog = openDialog();
+    fill(authDialog.element, { 'login-email': 'alex@mail.com', 'login-password': 'secret1' });
+
+    submit(authDialog.element);
+    submit(authDialog.element);
+
+    expect(signInWithEmail).toHaveBeenCalledOnce();
+  });
+
+  it('does not call Firebase for an invalid form', () => {
+    const authDialog = openDialog();
+    fill(authDialog.element, { 'login-email': 'alex', 'login-password': '1' });
+
+    submit(authDialog.element);
+
+    expect(signInWithEmail).not.toHaveBeenCalled();
+  });
+
+  it('keeps the dialog open, unlocks it and reports the error on failure', async () => {
+    vi.mocked(signInWithEmail).mockRejectedValue(
+      Object.assign(new Error('bad'), { code: 'auth/invalid-credential' }),
+    );
+    const onAuthenticated = vi.fn();
+    const authDialog = openDialog(DialogMode.Login, { onAuthenticated });
+    fill(authDialog.element, { 'login-email': 'alex@mail.com', 'login-password': 'wrong12' });
+
+    submit(authDialog.element);
+
+    await vi.waitFor(() => {
+      expect(showSnackbar).toHaveBeenCalledWith({
+        message: 'Incorrect email or password.',
+        variant: 'error',
+      });
+    });
+    expect(authDialog.getOpenMode()).toBe(DialogMode.Login);
+    expect(onAuthenticated).not.toHaveBeenCalled();
+    const email = queryInput(authDialog.element, '#login-email');
+    expect(email.disabled).toBe(false);
+    expect(email.value).toBe('alex@mail.com');
+    expect(queryButton(authDialog.element, '.auth-dialog__submit').disabled).toBe(false);
+  });
+
+  it('registers with the username saved as the profile name', async () => {
+    vi.mocked(registerWithEmail).mockResolvedValue({ ...profile, displayName: 'CozyGamer99' });
+    const onAuthenticated = vi.fn();
+    const authDialog = openDialog(DialogMode.Register, { onAuthenticated });
+    fill(authDialog.element, {
+      'register-username': 'CozyGamer99',
+      'register-email': 'cozy@mail.com',
+      'register-password': 'Secret1!',
+      'register-confirm-password': 'Secret1!',
+    });
+
+    submit(authDialog.element);
+
+    expect(registerWithEmail).toHaveBeenCalledWith({
+      username: 'CozyGamer99',
+      email: 'cozy@mail.com',
+      password: 'Secret1!',
+    });
+    await vi.waitFor(() => {
+      expect(onAuthenticated).toHaveBeenCalledWith(
+        expect.objectContaining({ displayName: 'CozyGamer99' }),
+      );
+    });
   });
 });

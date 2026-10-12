@@ -15,6 +15,7 @@ import { validateLoginForm, type LoginValues } from './auth-validation';
 export interface LoginFormOptions {
   readonly headingId: string;
   readonly onSwitchToRegister: () => void;
+  readonly onSubmit?: (values: LoginValues) => void;
 }
 
 export interface LoginForm {
@@ -104,7 +105,9 @@ export function createLoginForm(options: LoginFormOptions): LoginForm {
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    validation.revealAll();
+    if (validation.revealAll()) {
+      options.onSubmit?.(validation.getValues());
+    }
   });
 
   return {
