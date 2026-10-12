@@ -2,6 +2,9 @@ import { HOME_HREF, LIBRARY_HREF } from '@/app/paths';
 import { getCurrentRoute, onRouteChange } from '@/app/router';
 import type { RouteName } from '@/app/routes';
 import logoMarkUrl from '@/assets/icons/logo-mark.svg';
+import { createUserProfile } from '@/components/user-profile/user-profile';
+import type { AppSession } from '@/shared/auth/app-session';
+import { getActiveSession, logout, onSessionChange } from '@/shared/auth/session-store';
 import { dispatchAuthDialogOpen } from '@/shared/lib/app-events';
 import { onBurgerMenuChange, toggleBurgerMenu } from '@/shared/lib/burger-menu-state';
 import { createElement } from '@/shared/lib/dom';
@@ -134,14 +137,33 @@ function createBurgerButton(): BurgerButton {
 export function createHeader(): Component {
   const nav = createNav();
   const burgerButton = createBurgerButton();
-  const actions = createElement('div', {
-    className: 'header__actions',
-    children: [
-      createAuthButton('Log In', DialogMode.Login, 'outline'),
-      createAuthButton('Sign Up', DialogMode.Register, 'primary'),
-      burgerButton.element,
-    ],
+  const guestControls: readonly HTMLElement[] = [
+    createAuthButton('Log In', DialogMode.Login, 'outline'),
+    createAuthButton('Sign Up', DialogMode.Register, 'primary'),
+  ];
+  const profile = createUserProfile('header');
+  profile.element.classList.add('header__profile');
+  const logoutButton = createElement('button', {
+    className: 'header__button header__button--logout',
+    text: 'Log Out',
+    attributes: { type: 'button' },
+    onClick: () => {
+      void logout();
+    },
   });
+  const actions = createElement('div', { className: 'header__actions' });
+
+  function renderActions(session: AppSession | undefined): void {
+    if (session === undefined) {
+      actions.replaceChildren(...guestControls, burgerButton.element);
+      return;
+    }
+    profile.update(session);
+    actions.replaceChildren(profile.element, logoutButton, burgerButton.element);
+  }
+
+  renderActions(getActiveSession());
+  const unsubscribeSession = onSessionChange(renderActions);
 
   const inner = createElement('div', {
     className: 'header__inner',
@@ -159,6 +181,7 @@ export function createHeader(): Component {
     destroy: (): void => {
       burgerButton.unsubscribe();
       unsubscribeRoute();
+      unsubscribeSession();
     },
   };
 }
