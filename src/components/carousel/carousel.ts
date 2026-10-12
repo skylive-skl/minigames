@@ -8,7 +8,7 @@ import { createEmptyState, createErrorBanner } from '@/shared/ui/feedback-state/
 import { createArrowIcon } from '@/shared/ui/icon/icon';
 import { createSkeleton, setBusy } from '@/shared/ui/skeleton/skeleton';
 import { showSnackbar } from '@/shared/ui/snackbar/snackbar';
-import { createGameCard, type CardPosition } from './game-card';
+import { createGameCard } from './game-card';
 import './carousel.scss';
 
 const AUTOPLAY_INTERVAL = 4000;
@@ -17,18 +17,30 @@ const SWIPE_THRESHOLD = 40;
 interface SlotConfig {
   readonly offset: number;
   readonly positionClass: string;
-  readonly cardPosition: CardPosition;
 }
 
-const SLOTS: readonly SlotConfig[] = [
-  { offset: -3, positionClass: 'carousel__item--outer-left', cardPosition: 'outer' },
-  { offset: -2, positionClass: 'carousel__item--edge-left', cardPosition: 'edge' },
-  { offset: -1, positionClass: 'carousel__item--side-left', cardPosition: 'side' },
-  { offset: 0, positionClass: 'carousel__item--center', cardPosition: 'center' },
-  { offset: 1, positionClass: 'carousel__item--side-right', cardPosition: 'side' },
-  { offset: 2, positionClass: 'carousel__item--edge-right', cardPosition: 'edge' },
-  { offset: 3, positionClass: 'carousel__item--outer-right', cardPosition: 'outer' },
+// Seven slots on desktop (side cards visible), five below it. The outer slots
+// sit just past the viewport edges so a slide always reveals a real card.
+const WIDE_SLOTS: readonly SlotConfig[] = [
+  { offset: -3, positionClass: 'carousel__item--outer-left' },
+  { offset: -2, positionClass: 'carousel__item--edge-left' },
+  { offset: -1, positionClass: 'carousel__item--side-left' },
+  { offset: 0, positionClass: 'carousel__item--center' },
+  { offset: 1, positionClass: 'carousel__item--side-right' },
+  { offset: 2, positionClass: 'carousel__item--edge-right' },
+  { offset: 3, positionClass: 'carousel__item--outer-right' },
 ];
+
+const COMPACT_SLOTS: readonly SlotConfig[] = [
+  { offset: -2, positionClass: 'carousel__item--outer-left' },
+  { offset: -1, positionClass: 'carousel__item--edge-left' },
+  { offset: 0, positionClass: 'carousel__item--center' },
+  { offset: 1, positionClass: 'carousel__item--edge-right' },
+  { offset: 2, positionClass: 'carousel__item--outer-right' },
+];
+
+// Matches the desktop-up breakpoint in carousel.scss.
+const WIDE_LAYOUT_QUERY = '(min-width: 769px)';
 
 const MIN_GAMES_TO_SLIDE = 2;
 
@@ -43,13 +55,13 @@ function createArrowButton(direction: 'left' | 'right'): HTMLButtonElement {
   });
 }
 
-function createSkeletonTrackItems(): HTMLLIElement[] {
-  return SLOTS.map((slot) =>
+function createSkeletonTrackItems(slots: readonly SlotConfig[]): HTMLLIElement[] {
+  return slots.map((slot) =>
     createElement('li', {
       className: `carousel__item ${slot.positionClass}`,
       children: [
         createElement('div', {
-          className: `game-card game-card--${slot.cardPosition} game-card--skeleton`,
+          className: 'game-card game-card--skeleton',
           children: [createSkeleton({ className: 'game-card__skeleton' })],
         }),
       ],
@@ -61,6 +73,7 @@ export function createCarousel(): Component {
   let games: readonly Game[] = [];
   let abortController: AbortController | undefined;
   let centerIndex = 0;
+  let items: HTMLLIElement[] = [];
   let isAnimating = false;
   let safetyTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
 
@@ -75,6 +88,8 @@ export function createCarousel(): Component {
   let autoplayStartTime = 0;
   let autoplayRemainingTime = AUTOPLAY_INTERVAL;
   let isAutoplayPaused = false;
+
+  const wideLayoutQuery = globalThis.matchMedia(WIDE_LAYOUT_QUERY);
 
   const heading = createElement('h2', { className: 'carousel__heading', text: 'New Games' });
   const accent = createElement('span', {
@@ -133,60 +148,96 @@ export function createCarousel(): Component {
     dispatchGameDetailsOpen(slug);
   }
 
+  function getSlots(): readonly SlotConfig[] {
+    return wideLayoutQuery.matches ? WIDE_SLOTS : COMPACT_SLOTS;
+  }
+
+  function getGameAt(offset: number): Game {
+    const length = games.length;
+    return games[(((centerIndex + offset) % length) + length) % length];
+  }
+
+  function fillItem(item: HTMLLIElement, game: Game): void {
+    item.replaceChildren(
+      createGameCard(game, () => {
+        handleCardClick(game.slug);
+      }),
+    );
+  }
+
+  function applySlotClasses(): void {
+    const slots = getSlots();
+    for (const [index, item] of items.entries()) {
+      item.className = `carousel__item ${slots[index].positionClass}`;
+    }
+  }
+
+  function resetTrackPosition(): void {
+    track.classList.remove('carousel__track--animating');
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
+  }
+
   function renderTrack(): void {
+    resetTrackPosition();
+
     if (games.length === 0) {
+      items = [];
       track.replaceChildren();
       return;
     }
 
-    const items = SLOTS.map((slot) => {
-      const gameIndex = (centerIndex + slot.offset + games.length * SLOTS.length) % games.length;
-      const game = games[gameIndex];
-      const card = createGameCard(game, slot.cardPosition, () => {
-        handleCardClick(game.slug);
-      });
-
-      return createElement('li', {
-        className: `carousel__item ${slot.positionClass}`,
-        children: [card],
-      });
+    items = getSlots().map((slot) => {
+      const item = createElement('li', { className: 'carousel__item' });
+      fillItem(item, getGameAt(slot.offset));
+      return item;
     });
-
+    applySlotClasses();
     track.replaceChildren(...items);
   }
 
-  function getShiftDistance(): number {
-    const centerItem = track.querySelector('.carousel__item--center');
-    const nextItem =
-      track.querySelector('.carousel__item--side-right') ??
-      track.querySelector('.carousel__item--edge-right');
-
-    if (centerItem instanceof HTMLElement && nextItem instanceof HTMLElement) {
-      const centerRect = centerItem.getBoundingClientRect();
-      const nextRect = nextItem.getBoundingClientRect();
-      const distance =
-        nextRect.left + nextRect.width / 2 - (centerRect.left + centerRect.width / 2);
-      if (distance > 20) {
-        return distance;
-      }
-    }
-
-    return 300;
+  function getCurrentOffset(): number {
+    const match = /translateX\((-?[\d.]+)px\)/.exec(track.style.transform);
+    return match === null ? 0 : Number(match[1]);
   }
 
+  // Cards keep their DOM nodes while sliding: the off-screen card on one end
+  // moves to the other end with the next game, every card takes its new slot
+  // class and CSS animates the widths. Moving that card shifts the row by one
+  // slot, so the track starts offset by the same distance and eases back to 0.
   function slide(direction: 'next' | 'prev'): void {
     if (isAnimating || !canSlide()) {
       return;
     }
     isAnimating = true;
 
-    const distance = getShiftDistance();
-    const shiftPx = direction === 'next' ? -distance : distance;
-    const animationClass =
-      direction === 'next' ? 'carousel__track--slide-next' : 'carousel__track--slide-prev';
+    const startOffset = getCurrentOffset();
+    const [first, second] = items;
+    const shift = second.getBoundingClientRect().left - first.getBoundingClientRect().left;
+    const lastOffset = Math.floor(getSlots().length / 2);
 
-    track.classList.add('carousel__track--animating', animationClass);
-    track.style.transform = `translateX(${String(shiftPx)}px)`;
+    centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + games.length) % games.length;
+
+    if (direction === 'next') {
+      const moved = items.shift() ?? first;
+      fillItem(moved, getGameAt(lastOffset));
+      items.push(moved);
+      track.append(moved);
+    } else {
+      const moved = items.pop() ?? first;
+      fillItem(moved, getGameAt(-lastOffset));
+      items.unshift(moved);
+      track.prepend(moved);
+    }
+
+    track.style.transition = 'none';
+    track.style.transform = `translateX(${String(startOffset + (direction === 'next' ? shift : -shift))}px)`;
+    track.getBoundingClientRect();
+
+    track.classList.add('carousel__track--animating');
+    track.style.transition = '';
+    track.style.transform = 'translateX(0)';
+    applySlotClasses();
 
     const onComplete = (): void => {
       track.removeEventListener('transitionend', handleTransitionEnd);
@@ -194,16 +245,7 @@ export function createCarousel(): Component {
         globalThis.clearTimeout(safetyTimer);
         safetyTimer = undefined;
       }
-
-      centerIndex = (centerIndex + (direction === 'next' ? 1 : -1) + games.length) % games.length;
-
-      track.classList.remove('carousel__track--animating', animationClass);
-      track.style.transition = 'none';
-      track.style.transform = 'translateX(0)';
-      track.getBoundingClientRect();
-      track.style.transition = '';
-
-      renderTrack();
+      track.classList.remove('carousel__track--animating');
       isAnimating = false;
     };
 
@@ -287,7 +329,7 @@ export function createCarousel(): Component {
   });
 
   trackViewport.addEventListener('pointermove', (event: PointerEvent) => {
-    if (!isPointerDown) {
+    if (!isPointerDown || isAnimating) {
       return;
     }
 
@@ -346,6 +388,16 @@ export function createCarousel(): Component {
   trackViewport.addEventListener('pointerup', handlePointerEnd);
   trackViewport.addEventListener('pointercancel', handlePointerEnd);
 
+  // The slot set differs per breakpoint, so the row is rebuilt when it flips.
+  const handleLayoutChange = (): void => {
+    if (games.length > 0) {
+      renderTrack();
+    } else if (content.getAttribute('aria-busy') === 'true') {
+      track.replaceChildren(...createSkeletonTrackItems(getSlots()));
+    }
+  };
+  wideLayoutQuery.addEventListener('change', handleLayoutChange);
+
   function setGames(nextGames: readonly Game[]): void {
     games = nextGames;
     centerIndex = 0;
@@ -356,7 +408,7 @@ export function createCarousel(): Component {
 
   function showLoading(): void {
     setGames([]);
-    track.replaceChildren(...createSkeletonTrackItems());
+    track.replaceChildren(...createSkeletonTrackItems(getSlots()));
     content.replaceChildren(trackViewport);
     setBusy(content, true);
   }
@@ -417,6 +469,7 @@ export function createCarousel(): Component {
     destroy: (): void => {
       abortController?.abort();
       clearAutoplayTimer();
+      wideLayoutQuery.removeEventListener('change', handleLayoutChange);
       if (safetyTimer !== undefined) {
         globalThis.clearTimeout(safetyTimer);
       }
